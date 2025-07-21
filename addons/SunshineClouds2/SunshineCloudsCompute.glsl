@@ -342,6 +342,73 @@ void sampleAtmospherics(
 }
 
 
+vec4 sampleAllAtmospherics(
+	vec3 worldPos, 
+	vec3 rayDirection,
+	float linear_depth,
+	float highestDensityDistance,
+	float density,
+	float stepDistance,
+	float stepCount,
+	float atmosphericDensity, 
+	vec3 sunDirection, 
+	vec3 sunlightColor, 
+	vec3 ambientLight)
+	{
+	vec3 totalRlh = vec3(0,0,0);
+    vec3 totalMie = vec3(0,0,0);
+	float iOdRlh = 0.0;
+    float iOdMie = 0.0;
+	// float odStepRlh = 0.0;
+	// float odStepMie = 0.0;
+
+	const float atmosphericHeight = 40000.0;
+	const vec3 RayleighScatteringCoef = vec3(5.5e-6, 13.0e-6, 22.4e-6);
+	const float Rayleighscaleheight = 8e3;
+	const float MieScatteringCoef = 21e-6;
+	const float Miescaleheight = 1.2e3;
+	const float MieprefferedDirection = 0.758;
+
+	// Calculate the Rayleigh and Mie phases.
+    float mu = dot(rayDirection, sunDirection);
+    float mumu = mu * mu;
+    float gg = MieprefferedDirection * MieprefferedDirection;
+    float pRlh = 3.0 / (16.0 * PI) * (1.0 + mumu);
+    float pMie = 3.0 / (8.0 * PI) * ((1.0 - gg) * (mumu + 1.0)) / (pow(1.0 + gg - 2.0 * mu * MieprefferedDirection, 1.5) * (2.0 + gg));
+
+	vec3 curPos = vec3(0.0);
+	float traveledDistance = 0.0;
+	//bool sampledDistanceAtmo = false;
+	float currentWeight = 0.0;
+	float sampleCount = 0.0;
+
+	for (float i = 0.0; i < stepCount; i++) {
+		traveledDistance = stepDistance * (i + 1);
+		
+		currentWeight = density * (1.0 - clamp((highestDensityDistance - traveledDistance) / stepDistance, 0.0, 1.0));
+
+		if (traveledDistance > linear_depth || currentWeight >= 1.0){
+			traveledDistance = traveledDistance - stepDistance;
+			currentWeight = 1.0 - clamp((linear_depth - traveledDistance) / stepDistance, 0.0, 1.0);
+			sampleAtmospherics(curPos, atmosphericHeight, stepDistance, Rayleighscaleheight, Miescaleheight, RayleighScatteringCoef, MieScatteringCoef, atmosphericDensity, currentWeight, totalRlh, totalMie, iOdRlh, iOdMie); 
+			break;
+		}
+		sampleCount += 1.0;
+		
+		curPos = worldPos + rayDirection * traveledDistance;
+		
+		sampleAtmospherics(curPos, atmosphericHeight, stepDistance, Rayleighscaleheight, Miescaleheight, RayleighScatteringCoef, MieScatteringCoef, atmosphericDensity, currentWeight, totalRlh, totalMie, iOdRlh, iOdMie); 
+	}
+
+	// pRlh *= (1.0 - lightingWeight);
+	// pMie *= (1.0 - lightingWeight);
+
+	float AtmosphericsDistancePower = length(vec3(RayleighScatteringCoef * totalRlh + MieScatteringCoef * totalMie));
+	vec3 atmospherics = 22.0 * (ambientLight * RayleighScatteringCoef * totalRlh + pMie * MieScatteringCoef * sunlightColor * totalMie) / sampleCount;
+	return vec4(atmospherics, AtmosphericsDistancePower);
+}
+
+
 void main() {
 	//SETTING UP UVS/RAY DATA
 	ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
@@ -576,6 +643,7 @@ void main() {
 	float initialdistanceSample = -1.0;
 
 	float lightingSamples = 0.0;
+	float atmoSamples = 0.0;
 
 	float density = 0.0;
 	float ambient = 0.0;
@@ -608,8 +676,8 @@ void main() {
 		vec4 maskSample = texture(extra_large_noise, (curPos.xz - extralargeNoisePos.xz) / extralargenoiseScale);
 		ceilingSample = mix(halfCeiling, cloudceiling, maskSample.a);
 		
-		sampleAtmospherics(curPos, atmosphericHeight, newStep, Rayleighscaleheight, Miescaleheight, RayleighScatteringCoef, MieScatteringCoef, atmosphericDensity, density, totalRlh, totalMie, iOdRlh, iOdMie); 
-			
+		//sampleAtmospherics(curPos, atmosphericHeight, newStep, Rayleighscaleheight, Miescaleheight, RayleighScatteringCoef, MieScatteringCoef, atmosphericDensity, density, totalRlh, totalMie, iOdRlh, iOdMie); 
+		atmoSamples += 1.0;
 		if (clamp(curPos.y, cloudfloor, cloudceiling) == curPos.y){
 
 			curLod = 1.0 - clamp(traveledDistance / lodMaxDistance, 0.0, 1.0);
@@ -759,24 +827,20 @@ void main() {
 	lightColor.a = density;
 
 
-	for (int lightI = 0; lightI < directionalLightCount; lightI++){
-		if (directionalLights[lightI].color.a > 0.0){
-			float sunUpWeight = clamp(directionalLightSunUpPower[lightI].r / lightingSamples, 0.0, 1.0);
-			float sunAOPower = clamp(directionalLightSunUpPower[lightI].g / lightingSamples, 0.0, 1.0);
-			float mu = dot(raydirection, directionalLights[lightI].direction.xyz);
-			
-
-			float mumu = mu * mu;
-			float gg = MieprefferedDirection * MieprefferedDirection;
-			float pRlh = 3.0 / (16.0 * PI) * (1.0 + mumu);
-			float pMie = 3.0 / (8.0 * PI) * ((1.0 - gg) * (mumu + 1.0)) / (pow(1.0 + gg - 2.0 * mu * MieprefferedDirection, 1.5) * (2.0 + gg));
-
-			float AtmosphericsDistancePower = length(vec3(RayleighScatteringCoef * totalRlh + MieScatteringCoef * totalMie));
-			vec3 atmospherics = 22.0 * (ambientfogdistancecolor * RayleighScatteringCoef * totalRlh + pMie * MieScatteringCoef * (directionalLights[lightI].color.rgb * sunAOPower) * totalMie);
-
-			lightColor.rgb = mix(lightColor.rgb, atmospherics, (AtmosphericsDistancePower * sunUpWeight)); //causes jitter in the sky
+	if (linear_depth > maxstep && directionalLightCount > 0.0){
+		for (float i = 0.0; i < directionalLightCount; i++){
+			DirectionalLight light = directionalLights[int(i)];
+			vec3 sundir = light.direction.xyz;
+			//sampleColor = sundir;
+			float sunUpWeight = smoothstep(0.0, 0.4, dot(sundir, vec3(0.0, 1.0, 0.0)));
+			float sundensityaffect = 1.0 - clamp(dot(sundir, raydirection) * density, 0.0, 1.0);
+			// sundensityaffect = min(1.0 - (sundensityaffect * density), 1.0 - (sundensityaffect * clamp(maxTheoreticalStep - linear_depth, 0.0, 1.0)));
+			float lightPower = light.color.a * sunUpWeight * sundensityaffect;
+			vec4 atmosphericData = sampleAllAtmospherics(rayOrigin, raydirection, linear_depth, traveledDistance, 0.0, traveledDistance / 10.0, 10.0, atmosphericDensity, sundir, light.color.rgb * lightPower, ambientfogdistancecolor);
+			lightColor.rgb = mix(lightColor.rgb, atmosphericData.rgb, clamp(atmosphericData.a, 0.0, 1.0)); //causes jitter in the sky
 		}
 	}
+
 
 	initialdistanceSample = max(initialdistanceSample, 0.0);
 

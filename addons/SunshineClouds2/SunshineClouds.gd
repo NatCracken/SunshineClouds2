@@ -136,9 +136,12 @@ var general_data : PackedByteArray
 var light_data : PackedByteArray
 
 var accumulation_is_a : bool = false
+var ignore_accumilation : bool = false
 
 var first_run : bool = true
 var filter_index = 0
+
+var last_render_target : RID
 
 func refresh_compute():
 	maskDrawnRid = RID()
@@ -631,6 +634,13 @@ func _render_callback(effect_callback_type, render_data):
 			var cameraTR : Transform3D = rendersceneData.get_cam_transform();
 			var viewProj : Projection = rendersceneData.get_cam_projection();
 			
+			var rendertarget: RID = buffers.get_render_target()
+			if rendertarget != last_render_target:
+				last_render_target = rendertarget
+				ignore_accumilation = true
+			else:
+				ignore_accumilation = false
+			
 			
 			last_size = size
 			
@@ -902,7 +912,7 @@ func update_matrices(camera_tr, view_proj, new_size: Vector2i):
 	general_data.encode_float(idx, clouds_detail_power); idx += 4
 	
 	general_data.encode_float(idx, lighting_density); idx += 4
-	general_data.encode_float(idx, accumulation_decay); idx += 4
+	general_data.encode_float(idx, accumulation_decay if !ignore_accumilation else 0.0); idx += 4
 	if (accumulation_is_a):
 		general_data.encode_float(idx, 1.0); idx += 4
 	else:

@@ -102,7 +102,7 @@ vec4 texture2D_bicubic(sampler2D tex, vec2 uv, vec2 res)
                         g1x * texture(tex, p3));
 }
 
-vec4 radialBlurColor(vec4 startColor, sampler2D colorImage, sampler2D depthImage, vec2 uv, vec2 size, inout float startingDepth, float Directions, float blurVertical, float blurHorizontal, float Quality){
+vec4 radialBlurColor(vec4 startColor, sampler2D colorImage, sampler2D depthImage, vec2 uv, vec2 size, float Directions, float blurVertical, float blurHorizontal, float Quality){
     float Pi = 6.28318530718;
     float count = 1.0;
 	float theoreticalMaxCount =  Directions * Quality;
@@ -118,7 +118,7 @@ vec4 radialBlurColor(vec4 startColor, sampler2D colorImage, sampler2D depthImage
 			Color += texture2D_bicubic(colorImage, newUV, size);
 			count += 1.0;
 			//float newDepth = texture(depthImage, newUV).g;
-			startingDepth = max(startingDepth, texture(depthImage, newUV).g);
+			//startingDepth = max(startingDepth, texture(depthImage, newUV).g);
 			// if (startingDepth - newDepth > genericData.max_step_distance){
 			// 	CurrentDepth = max(CurrentDepth, newDepth);
 			// 	Color += texture2D_bicubic(colorImage, newUV, size);
@@ -252,6 +252,7 @@ vec4 sampleAllAtmospherics(
 	float traveledDistance = 0.0;
 	//bool sampledDistanceAtmo = false;
 	float currentWeight = 0.0;
+	float sampleCount = 0.0;
 
 	for (float i = 0.0; i < stepCount; i++) {
 		traveledDistance = stepDistance * (i + 1);
@@ -264,7 +265,7 @@ vec4 sampleAllAtmospherics(
 			sampleAtmospherics(curPos, atmosphericHeight, stepDistance, Rayleighscaleheight, Miescaleheight, RayleighScatteringCoef, MieScatteringCoef, atmosphericDensity, currentWeight, totalRlh, totalMie, iOdRlh, iOdMie); 
 			break;
 		}
-		
+		sampleCount += 1.0;
 		
 		curPos = worldPos + rayDirection * traveledDistance;
 		
@@ -275,7 +276,7 @@ vec4 sampleAllAtmospherics(
 	// pMie *= (1.0 - lightingWeight);
 
 	float AtmosphericsDistancePower = length(vec3(RayleighScatteringCoef * totalRlh + MieScatteringCoef * totalMie));
-	vec3 atmospherics = 22.0 * (ambientLight * RayleighScatteringCoef * totalRlh + pMie * MieScatteringCoef * sunlightColor * totalMie);
+	vec3 atmospherics = 22.0 * (ambientLight * RayleighScatteringCoef * totalRlh + pMie * MieScatteringCoef * sunlightColor * totalMie) / sampleCount;
 	return vec4(atmospherics, AtmosphericsDistancePower);
 }
 
@@ -286,8 +287,10 @@ void main() {
 
     int resolutionScale = int(genericData.data.resolutionscale);
     ivec2 size = lowres_size * resolutionScale;
-
-    vec2 depthUV = (vec2(uv) + vec2(1.0, 0.0)) / vec2(size);
+	
+	vec2 depthUV = vec2(uv) / vec2(size);
+	//vec2 depthUV = vec2(float(uv.x) + (uv.x % 2), float(uv.y) - (uv.y % 2)) / vec2(size);
+    //vec2 depthUV = (vec2(float(uv.x) + (uv.x % 2), float(uv.y) - (uv.y % 2)) + vec2(0.0, 0.5)) / vec2(size);
 	depthUV = clamp(depthUV, vec2(0.0), vec2(1.0));
 	float depth = texture(depth_image, depthUV).r;
 	vec4 view = inverse(scene_data_block.data.projection_matrix) * vec4(depthUV*2.0-1.0,depth,1.0);
@@ -317,14 +320,17 @@ void main() {
 	vec2 lowres_sizefloat = vec2(lowres_size);
 	vec4 currentAccumilation = vec4(0.0);
 	vec4 currentColorData = vec4(0.0);
-	if (resolutionScale != 1){
-		currentAccumilation = texture2D_bicubic(input_color_image, accumUV, lowres_sizefloat);
-		currentColorData = texture2D_bicubic(input_data_image, accumUV, lowres_sizefloat);
-	}
-	else{
-		currentAccumilation = texture(input_color_image, accumUV);
-		currentColorData = texture(input_data_image, accumUV);
-	}
+	
+	currentAccumilation = texture(input_color_image, accumUV);
+	currentColorData = texture(input_data_image, accumUV);	
+	// if (resolutionScale != 1){
+	// 	currentAccumilation = texture2D_bicubic(input_color_image, accumUV, lowres_sizefloat);
+	// 	currentColorData = texture2D_bicubic(input_data_image, accumUV, lowres_sizefloat);
+	// }
+	// else{
+	// 	currentAccumilation = texture(input_color_image, accumUV);
+	// 	currentColorData = texture(input_data_image, accumUV);
+	// }
 	
 
 	float minstep = genericData.data.min_step_distance;
@@ -340,7 +346,7 @@ void main() {
 		float blurVertical = blurPower / float(size.y);
 		float blurQuality = genericData.data.blurQuality;
 		//currentColorData = radialBlurData(currentColorData, linear_depth, input_data_image, accumUV, blurQuality * 4.0, blurVertical, blurHorizontal, blurQuality);
-		currentAccumilation = radialBlurColor(currentAccumilation, input_color_image, input_data_image, accumUV, lowres_sizefloat, currentColorData.g, blurQuality * 4.0, blurVertical, blurHorizontal, blurQuality);
+		currentAccumilation = radialBlurColor(currentAccumilation, input_color_image, input_data_image, accumUV, lowres_sizefloat, blurQuality * 4.0, blurVertical, blurHorizontal, blurQuality);
 		
 	}
 
@@ -352,31 +358,41 @@ void main() {
 
 	float lerp = 0.0;
 	bool debugCollisions = false;
-	if (traveledDistance > linear_depth){
-		
-		if (firstTraveledDistance > linear_depth){
-			lerp = clamp(remap(firstTraveledDistance - linear_depth, 0.0, 1.0, 0.0, 1.0), 0.0, 1.0);
-			density *= 1.0 - lerp;
-		}
-		else{
-			//debugCollisions = true;
-			lerp = clamp(remap(linear_depth - firstTraveledDistance, 0.0, minstep, 0.0, 1.0), 0.0, 1.0);
-			density *= lerp;
-			//density = 0.0;
-		}
-		// float lerp = clamp(remap(linear_depth, firstTraveledDistance, traveledDistance, 0.0, 1.0), 0.0, 1.0);
-		// density *= lerp;
-		// if (firstTraveledDistance < linear_depth){
-
-		// 	density = 0.0;
-		// }
-		// else{
-		// 	lerp = clamp(remap(firstTraveledDistance - linear_depth, minstep, maxstep, 0.0, 1.0), 0.0, 1.0);
-		// 	density *= 1.0 - lerp;
-		// }
-		// traveledDistance = linear_depth;
+	if (firstTraveledDistance > linear_depth){
+		//debugCollisions = true;
+		lerp = 1.0;
 	}
-	density *= smoothstep(minstep, maxstep, linear_depth);
+	else if (traveledDistance > linear_depth){
+		//debugCollisions = true;
+		float firsttravelblend = mix(1.0 - clamp((traveledDistance - firstTraveledDistance) / minstep, 0.0, 1.0), 1.0, clamp(firstTraveledDistance / maxstep, 0.0, 1.0));
+		lerp = (clamp((traveledDistance - linear_depth) / (traveledDistance - firstTraveledDistance), 0.0, 1.0)) * firsttravelblend;
+	}
+	// if (traveledDistance > linear_depth){
+	// 	//lerp = max(clamp(traveledDistance - linear_depth / maxstep, 0.0, 1.0), clamp(firstTraveledDistance - linear_depth, 0.0, 1.0));
+	// 	if (firstTraveledDistance > linear_depth){
+	// 		lerp = clamp(remap(firstTraveledDistance - linear_depth, 0.0, 1.0, 0.0, 1.0), 0.0, 1.0);
+	// 		density *= 1.0 - lerp;
+	// 	}
+	// 	else{
+	// 		//debugCollisions = true;
+	// 		lerp = clamp(remap(linear_depth - firstTraveledDistance, 0.0, minstep, 0.0, 1.0), 0.0, 1.0);
+	// 		density *= lerp;
+	// 		//density = 0.0;
+	// 	}
+	// 	// float lerp = clamp(remap(linear_depth, firstTraveledDistance, traveledDistance, 0.0, 1.0), 0.0, 1.0);
+	// 	// density *= lerp;
+	// 	// if (firstTraveledDistance < linear_depth){
+
+	// 	// 	density = 0.0;
+	// 	// }
+	// 	// else{
+	// 	// 	lerp = clamp(remap(firstTraveledDistance - linear_depth, minstep, maxstep, 0.0, 1.0), 0.0, 1.0);
+	// 	// 	density *= 1.0 - lerp;
+	// 	// }
+	// 	// traveledDistance = linear_depth;
+	// }
+	density *= smoothstep(0.0, minstep, linear_depth);
+	density = clamp(density - lerp, 0.0, 1.0);
 	float groundLinearFade = mix(smoothstep(maxTheoreticalStep, maxTheoreticalStep, linear_depth), 1.0, genericData.data.fogEffectGround);
 
     vec4 color = imageLoad(color_image, uv);
@@ -390,18 +406,19 @@ void main() {
 			vec3 sundir = light.direction.xyz;
 			//sampleColor = sundir;
 			float sunUpWeight = smoothstep(0.0, 0.4, dot(sundir, vec3(0.0, 1.0, 0.0)));
-			float lightPower = light.color.a * sunUpWeight;
-			if (lightPower > 0.0){
-				vec4 atmosphericData = sampleAllAtmospherics(rayOrigin, raydirection, linear_depth, traveledDistance, 0.0, linear_depth / 10.0, 10.0, atmosphericDensity, sundir, light.color.rgb * lightPower, ambientfogdistancecolor);
-				color.rgb = mix(color.rgb, atmosphericData.rgb, atmosphericData.a * groundLinearFade); //causes jitter in the sky
-			}
+			float sundensityaffect = clamp(dot(sundir, raydirection), 0.0, 1.0);
+			sundensityaffect = min(clamp(1.0 - (sundensityaffect * density), 0.0, 1.0), 1.0 - (sundensityaffect * clamp(maxTheoreticalStep - linear_depth, 0.0, 1.0)));
+			float lightPower = light.color.a * sunUpWeight * sundensityaffect;
+			vec4 atmosphericData = sampleAllAtmospherics(rayOrigin, raydirection, linear_depth, traveledDistance, 0.0, min(traveledDistance, linear_depth) / 10.0, 10.0, atmosphericDensity, sundir, light.color.rgb * lightPower, ambientfogdistancecolor);
+			color.rgb = mix(color.rgb, atmosphericData.rgb, clamp(atmosphericData.a * groundLinearFade, 0.0, 1.0)); //causes jitter in the sky
 		}
 	}
 
 	color.rgb = mix(color.rgb, currentAccumilation.rgb, density);
 	
+	
 	if (debugCollisions){
-		color.rgb = vec3(lerp, 0.0, 0.0);
+		color.rgb = vec3(lerp);
 	}
 	
     imageStore(color_image, uv, color);

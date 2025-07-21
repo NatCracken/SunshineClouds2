@@ -81,7 +81,7 @@ light_energy = 11.685
 omni_range = 20000.0
 
 [node name="SunshineCloudsEffector" type="Node3D" parent="."]
-transform = Transform3D(0.241651, 0, 0.970363, 0, 1, 0, -0.970363, 0, 0.241651, -7951.21, -2907.13, -14550.1)
+transform = Transform3D(0.241651, 0, 0.970363, 0, 1, 0, -0.970363, 0, 0.241651, -10708.4, -2907.13, -17600.4)
 script = ExtResource("3_afwv5")
 Radius = 16788.2
 Power = 1.18
@@ -97,3 +97,7 @@ tracked_directional_light_shadow_steps = Array[int]([32])
 tracked_point_lights = [NodePath("../OmniLight3D")]
 tracked_point_effectors = [NodePath("../SunshineCloudsEffector")]
 metadata/_custom_type_script = "uid://djusduuxf0voj"
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12376.3, 3579.21)
+far = 400000.0
