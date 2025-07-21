@@ -841,7 +841,6 @@ void main() {
 		}
 	}
 
-
 	initialdistanceSample = max(initialdistanceSample, 0.0);
 
 

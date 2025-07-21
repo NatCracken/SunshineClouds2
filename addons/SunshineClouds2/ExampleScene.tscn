@@ -81,9 +81,9 @@ light_energy = 11.685
 omni_range = 20000.0
 
 [node name="SunshineCloudsEffector" type="Node3D" parent="."]
-transform = Transform3D(0.241651, 0, 0.970363, 0, 1, 0, -0.970363, 0, 0.241651, -10708.4, -2907.13, -17600.4)
+transform = Transform3D(0.241651, 0, 0.970363, 0, 1, 0, -0.970363, 0, 0.241651, 19316.8, -2863.07, -3971.34)
 script = ExtResource("3_afwv5")
-Radius = 16788.2
+Radius = 18900.9
 Power = 1.18
 metadata/_custom_type_script = "uid://bxlm4e5qfb7uu"
 

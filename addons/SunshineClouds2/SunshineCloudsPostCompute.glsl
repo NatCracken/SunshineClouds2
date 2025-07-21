@@ -409,10 +409,11 @@ void main() {
 			float sundensityaffect = clamp(dot(sundir, raydirection), 0.0, 1.0);
 			sundensityaffect = min(clamp(1.0 - (sundensityaffect * density), 0.0, 1.0), 1.0 - (sundensityaffect * clamp(maxTheoreticalStep - linear_depth, 0.0, 1.0)));
 			float lightPower = light.color.a * sunUpWeight * sundensityaffect;
-			vec4 atmosphericData = sampleAllAtmospherics(rayOrigin, raydirection, linear_depth, traveledDistance, 0.0, min(traveledDistance, linear_depth) / 10.0, 10.0, atmosphericDensity, sundir, light.color.rgb * lightPower, ambientfogdistancecolor);
+			vec4 atmosphericData = sampleAllAtmospherics(rayOrigin, raydirection, linear_depth, traveledDistance, 0.0,  min(linear_depth, maxTheoreticalStep)  / 10.0, 10.0, atmosphericDensity, sundir, light.color.rgb * lightPower, ambientfogdistancecolor);
 			color.rgb = mix(color.rgb, atmosphericData.rgb, clamp(atmosphericData.a * groundLinearFade, 0.0, 1.0)); //causes jitter in the sky
 		}
 	}
+
 
 	color.rgb = mix(color.rgb, currentAccumilation.rgb, density);
 	
