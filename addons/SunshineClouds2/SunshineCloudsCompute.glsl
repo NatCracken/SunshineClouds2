@@ -127,6 +127,17 @@ bool renderBayer(ivec2 fragCoord, int framecount)
 
 //Sample functions
 
+float sampleEffectorAdditive(vec3 worldPosition) {
+	float effectorAdditive = 0.0;
+	for (int i = 0; i < int(genericData.data.pointEffectorCount); i++) {
+		float effectorDistance = distance(pointEffectors[i].position, worldPosition);
+		if (effectorDistance < pointEffectors[i].radius){
+			effectorAdditive += mix(pointEffectors[i].power, 0.0, effectorDistance / pointEffectors[i].radius);
+		}
+	}
+	return effectorAdditive;
+}
+
 float sampleScene(
 	vec3 largeNoisePos, 
 	vec3 mediumNoisePos, 
@@ -160,12 +171,7 @@ float sampleScene(
 	worldPosition += vec3(WindDirection.x, 0.0, WindDirection.y) * genericData.data.windSweptPower * quadraticIn(1.0 - clamp(clampedWorldHeight / genericData.data.windSweptRange, 0.0, 1.0));
 
 	if (lod > 0.0){
-		for (int i = 0; i < int(genericData.data.pointEffectorCount); i++){
-			float effectorDistance = distance(pointEffectors[i].position, worldPosition);
-			if (effectorDistance < pointEffectors[i].radius){
-				effectorAdditive += mix(pointEffectors[i].power, 0.0, effectorDistance / pointEffectors[i].radius) * edgeFade;
-			}
-		}
+		effectorAdditive = sampleEffectorAdditive(worldPosition) * edgeFade;
 
 		if (!ambientsample && curlHeightSample > 0.0 && min(curlPower, lod) > 0.5){
 			
@@ -191,6 +197,37 @@ float sampleScene(
 	shape = clamp(remap(shape, smallShape, 1.0, 0.0, 1.0), 0.0, 1.0);
 	shape += min(effectorAdditive, 0.0);
 
+	return clamp((shape * edgeFade), 0.0, 1.0);
+}
+
+float sampleSceneCoarse(
+	vec3 largeNoisePos, 
+	vec3 worldPosition, 
+	float cloudceiling, 
+	float cloudfloor, 
+	float extralargeNoiseValue,
+	float largenoisescale, 
+	float coverage,
+	float lod)
+	{
+	float clampedWorldHeight = remap(worldPosition.y, cloudfloor, cloudceiling, 0.0, 1.0);
+	vec4 gradientSample = texture(heightmask, vec2(clampedWorldHeight, 0.5)).rgba;
+
+	float edgeFade = min(smoothstep(0.0, 0.1, clampedWorldHeight), smoothstep(1.0, 0.9, clampedWorldHeight));
+	float extraLargeShape = extralargeNoiseValue * gradientSample.b;
+
+	float effectorAdditive = 0.0;
+	vec2 WindDirection = genericData.data.WindDirection;
+	worldPosition += vec3(WindDirection.x, 0.0, WindDirection.y) * genericData.data.windSweptPower * quadraticIn(1.0 - clamp(clampedWorldHeight / genericData.data.windSweptRange, 0.0, 1.0));
+
+	if (lod > 0.0){
+		effectorAdditive = sampleEffectorAdditive(worldPosition) * edgeFade;
+	}
+
+	float largeShape = texture(large_noise, (worldPosition - largeNoisePos) / largenoisescale).r * extraLargeShape;
+	largeShape = smoothstep(coverage , coverage - 0.1, 1.0 - (largeShape * gradientSample.r)) + max(effectorAdditive, 0.0);
+
+	float shape = largeShape + effectorAdditive;
 	return clamp((shape * edgeFade), 0.0, 1.0);
 }
 
@@ -576,8 +613,11 @@ void main() {
 		if (clamp(curPos.y, cloudfloor, cloudceiling) == curPos.y){
 
 			curLod = 1.0 - clamp(traveledDistance / lodMaxDistance, 0.0, 1.0);
-			newdensity = pow(sampleScene(largeNoisePos, mediumNoisePos, smallNoisePos, curPos, ceilingSample, cloudfloor, maskSample.a, largenoiseScale, mediumnoiseScale, smallnoiseScale, coverage, smallNoiseMultiplier, curlPower, curLod, false) * densityMultiplier, sharpness) * depthFade;
+			newdensity = sampleSceneCoarse(largeNoisePos, curPos, ceilingSample, cloudfloor, maskSample.a, largenoiseScale, coverage, curLod);
 			
+			if (newdensity > 0.0) {
+				newdensity = pow(sampleScene(largeNoisePos, mediumNoisePos, smallNoisePos, curPos, ceilingSample, cloudfloor, maskSample.a, largenoiseScale, mediumnoiseScale, smallnoiseScale, coverage, smallNoiseMultiplier, curlPower, curLod, false) * densityMultiplier, sharpness) * depthFade;
+			}
 			
 			
 			if (newdensity > 0.0){
