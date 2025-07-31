@@ -6,38 +6,38 @@ class_name SunshineCloudsGD
 
 
 @export_group("Basic Settings")
-@export_range(0, 1) var clouds_coverage : float = 0.6
+@export_range(0, 1) var clouds_coverage : float = 0.7
 @export_range(0, 20) var clouds_density : float = 1.0
-@export_range(0, 2) var atmospheric_density : float = 0.5
-@export_range(0, 10) var lighting_density : float = 0.55
+@export_range(0, 2) var atmospheric_density : float = 0.7
+@export_range(0, 10) var lighting_density : float = 0.25
 @export_range(0, 1) var fog_effect_ground : float = 1.0
 
 @export_subgroup("Colors")
-@export_range(0, 1) var clouds_anisotropy : float = 0.3
-@export_range(0, 1) var clouds_powder : float = 0.5
-@export var cloud_ambient_color : Color = Color(0.352, 0.624, 0.784, 1.0)
-@export var cloud_ambient_tint : Color = Color(0.352, 0.624, 0.784, 1.0)
-@export var atmosphere_color : Color = Color(0.801, 0.893, 0.962, 1.0)
-@export var ambient_occlusion_color : Color = Color(0.17, 0.044, 0.027, 0.549)
+@export_range(0, 1) var clouds_anisotropy : float = 0.18
+@export_range(0, 1) var clouds_powder : float = 0.851
+@export var cloud_ambient_color : Color = Color(0.763, 0.786, 0.822)
+@export var cloud_ambient_tint : Color = Color(0.132, 0.202, 0.242)
+@export var atmosphere_color : Color = Color(0.696, 0.832, 0.989)
+@export var ambient_occlusion_color : Color = Color(0.54, 0.108, 0.0, 0.871)
 
 @export_subgroup("Structure")
-@export_range(0, 1) var accumulation_decay : float = 0.5
+@export_range(0, 1) var accumulation_decay : float = 0.7
 @export_range(100, 1000000) var extra_large_noise_scale : float = 320000.0
-@export_range(100, 500000) var large_noise_scale : float = 50000.0
-@export_range(100, 100000) var medium_noise_scale : float = 6000.0
-@export_range(100, 10000) var small_noise_scale : float = 2500.0
-@export_range(0, 2) var clouds_sharpness : float = 1.0
-@export_range(0, 3) var clouds_detail_power : float = 0.9
-@export_range(0, 50000) var curl_noise_strength : float = 5000.0
-@export_range(0, 2) var lighting_sharpness : float = 0.05
-@export_range(0, 1) var wind_swept_range : float = 0.5
-@export_range(0, 5000) var wind_swept_strength : float = 500.0
+@export_range(100, 500000) var large_noise_scale : float = 120000.0
+@export_range(100, 100000) var medium_noise_scale : float = 20000.0
+@export_range(100, 10000) var small_noise_scale : float = 8500
+@export_range(0, 2) var clouds_sharpness : float = 0.84
+@export_range(0, 3) var clouds_detail_power : float = 1.0
+@export_range(0, 50000) var curl_noise_strength : float = 4500.0
+@export_range(0, 2) var lighting_sharpness : float = 0.38
+@export_range(0, 1) var wind_swept_range : float = 0.54
+@export_range(0, 5000) var wind_swept_strength : float = 3500.0
 
 @export var cloud_floor : float = 1500.0
 @export var cloud_ceiling : float = 25000.0
 
 @export_subgroup("Performance")
-@export var max_step_count : float = 50
+@export var max_step_count : float = 100
 @export var max_lighting_steps : float = 32
 @export_enum("Native","Half","Quarter","Eighth") var resolution_scale = 0:
 	get:
@@ -61,15 +61,15 @@ class_name SunshineCloudsGD
 @export_subgroup("Visuals")
 @export_range(0, 1000) var dither_speed : float = 100.8254
 @export_range(0, 20) var blur_power : float = 2.0
-@export_range(0, 6) var blur_quality : float = 1.0
+@export_range(0, 6) var blur_quality : float = 3.0
 
 @export_subgroup("Reflections")
 @export var reflections_globalshaderparam : String = ""
 
 @export_subgroup("Performance")
-@export var min_step_distance : float = 100.0
+@export var min_step_distance : float = 200.0
 @export var max_step_distance : float = 600.0
-@export var lighting_travel_distance : float = 5000.0
+@export var lighting_travel_distance : float = 7000.0
 
 @export_subgroup("Mask")
 @export var extra_large_used_as_mask : bool = false
@@ -715,13 +715,13 @@ func retrieve_position_queries(data : PackedByteArray):
 	positionResetting = false
 
 
-func update_callbacktype(lastY : float):
-	if (lastY > cloud_floor):
-		if (self.effect_callback_type != CompositorEffect.EFFECT_CALLBACK_TYPE_POST_TRANSPARENT):
-			self.effect_callback_type = CompositorEffect.EFFECT_CALLBACK_TYPE_POST_TRANSPARENT
-	else:
-		if (self.effect_callback_type != CompositorEffect.EFFECT_CALLBACK_TYPE_PRE_TRANSPARENT):
-			self.effect_callback_type = CompositorEffect.EFFECT_CALLBACK_TYPE_PRE_TRANSPARENT
+#func update_callbacktype(lastY : float):
+	#if (lastY > cloud_floor):
+		#if (self.effect_callback_type != CompositorEffect.EFFECT_CALLBACK_TYPE_POST_TRANSPARENT):
+			#self.effect_callback_type = CompositorEffect.EFFECT_CALLBACK_TYPE_POST_TRANSPARENT
+	#else:
+		#if (self.effect_callback_type != CompositorEffect.EFFECT_CALLBACK_TYPE_PRE_TRANSPARENT):
+			#self.effect_callback_type = CompositorEffect.EFFECT_CALLBACK_TYPE_PRE_TRANSPARENT
 
 func update_matrices(camera_tr, view_proj, new_size: Vector2i):
 	if general_data.size() != 256: #64 * 4 bytes for each float = 256.
