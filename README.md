@@ -41,8 +41,7 @@ Beginner tutorial: [https://www.youtube.com/watch?v=aEDDkGIfwDY](https://www.you
 
 ## Contribution
 Feel free to make pr's or issues here, I will fix them as able, I will love to see whatever you all come up with!
-
-If you wish to support me directly you can do so over on Patreon: [https://www.patreon.com/c/Bonkahe](https://www.patreon.com/c/Bonkahe)
+For questions feel free to hit me up on discord: [discord.gg/zGMPmPJ2Y8](discord.gg/zGMPmPJ2Y8)
 Thank you so much to all the wonderful people who support me.
 
 ### Current outstanding issues
