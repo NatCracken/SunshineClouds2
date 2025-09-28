@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://g02m2ewpwusq" path="res://addons/SunshineClouds2/NoiseTextures/HeightGradient.tres" id="5_mrg3l"]
 [ext_resource type="NoiseTexture3D" uid="uid://6ed3lvlpbqmg" path="res://addons/SunshineClouds2/NoiseTextures/LargeScaleNoise.tres" id="6_iyxim"]
 [ext_resource type="NoiseTexture3D" uid="uid://dxyewgt7o40m0" path="res://addons/SunshineClouds2/NoiseTextures/MediumScaleNoise.tres" id="7_opodv"]
-[ext_resource type="RDShaderFile" uid="uid://chxheyp4eohbc" path="res://addons/SunshineClouds2/SunshineCloudsPostCompute.glsl" id="8_f8qfs"]
+[ext_resource type="RDShaderFile" uid="uid://cqhejbalsrvjp" path="res://addons/SunshineClouds2/SunshineCloudsPostCompute.glsl" id="8_lebqt"]
 [ext_resource type="RDShaderFile" uid="uid://crfpk8ta4qxsk" path="res://addons/SunshineClouds2/SunshineCloudsPreCompute.glsl" id="9_bt1pb"]
 [ext_resource type="Script" uid="uid://dnblgqynq1t7l" path="res://addons/SunshineClouds2/SunshineClouds.gd" id="10_jugbg"]
 [ext_resource type="NoiseTexture3D" uid="uid://bnck2kxeg5bkg" path="res://addons/SunshineClouds2/NoiseTextures/SmallScaleNoise.tres" id="11_jgply"]
@@ -68,7 +68,7 @@ extra_large_used_as_mask = true
 mask_width_km = 512.0
 pre_pass_compute_shader = ExtResource("9_bt1pb")
 compute_shader = ExtResource("1_lebqt")
-post_pass_compute_shader = ExtResource("8_f8qfs")
+post_pass_compute_shader = ExtResource("8_lebqt")
 origin_offset = Vector3(0, 0, 0)
 wind_direction = Vector3(1, 0, 1)
 directional_lights_data = Array[Vector4]([Vector4(0.412799, 0.564261, -0.714988, 32), Vector4(1, 1, 1, 1)])

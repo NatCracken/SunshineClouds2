@@ -104,7 +104,7 @@ func InitialSceneLoad() -> void:
 		file.store_string(content)
 		file.close()
 		
-		EditorInterface.get_resource_filesystem().reimport_files(["res://addons/SunshineClouds2/SunshineCloudsCompute.glsl", "res://addons/SunshineClouds2/SunshineCloudsPostCompute.glsl", "res://addons/SunshineClouds2/SunshineCloudsPreCompute.glsl"])
+		EditorInterface.get_resource_filesystem().reimport_files(["res://addons/SunshineClouds2/SunshineCloudsCompute.glsl", "res://addons/SunshineClouds2/SunshineCloudsPostCompute.glsl", "res://addons/SunshineClouds2/SunshineCloudsPostCompute.msaa.glsl", "res://addons/SunshineClouds2/SunshineCloudsPreCompute.glsl", "res://addons/SunshineClouds2/SunshineCloudsDisplay.glsl", "res://addons/SunshineClouds2/SunshineCloudsDisplay.msaa.glsl"])
 		await get_tree().create_timer(0.1).timeout
 		if driver != null && driver.clouds_resource != null:
 			driver.clouds_resource.refresh_compute()
