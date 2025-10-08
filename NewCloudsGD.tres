@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://g02m2ewpwusq" path="res://addons/SunshineClouds2/NoiseTextures/HeightGradient.tres" id="5_mrg3l"]
 [ext_resource type="NoiseTexture3D" uid="uid://6ed3lvlpbqmg" path="res://addons/SunshineClouds2/NoiseTextures/LargeScaleNoise.tres" id="6_iyxim"]
 [ext_resource type="NoiseTexture3D" uid="uid://dxyewgt7o40m0" path="res://addons/SunshineClouds2/NoiseTextures/MediumScaleNoise.tres" id="7_opodv"]
-[ext_resource type="RDShaderFile" uid="uid://cqhejbalsrvjp" path="res://addons/SunshineClouds2/SunshineCloudsPostCompute.glsl" id="8_lebqt"]
+[ext_resource type="RDShaderFile" uid="uid://cpef10h5lggny" path="res://addons/SunshineClouds2/SunshineCloudsPostCompute.msaa.glsl" id="8_lebqt"]
 [ext_resource type="RDShaderFile" uid="uid://crfpk8ta4qxsk" path="res://addons/SunshineClouds2/SunshineCloudsPreCompute.glsl" id="9_bt1pb"]
 [ext_resource type="Script" uid="uid://dnblgqynq1t7l" path="res://addons/SunshineClouds2/SunshineClouds.gd" id="10_jugbg"]
 [ext_resource type="NoiseTexture3D" uid="uid://bnck2kxeg5bkg" path="res://addons/SunshineClouds2/NoiseTextures/SmallScaleNoise.tres" id="11_jgply"]
@@ -24,7 +24,7 @@ needs_normal_roughness = false
 script = ExtResource("10_jugbg")
 clouds_coverage = 0.874
 clouds_density = 1.0
-atmospheric_density = 0.711
+atmospheric_density = 0.617977
 lighting_density = 0.254
 fog_effect_ground = 1.0
 clouds_anisotropy = 0.185

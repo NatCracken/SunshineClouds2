@@ -25,8 +25,7 @@ enabled=PackedStringArray("res://addons/SunshineClouds2/plugin.cfg")
 
 [rendering]
 
-scaling_3d/mode=2
-anti_aliasing/quality/screen_space_aa=1
+anti_aliasing/quality/msaa_3d=3
 
 [shader_globals]
 
