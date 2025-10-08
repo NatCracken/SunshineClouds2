@@ -419,10 +419,10 @@ void main() {
 		return;
 	}
 	
-	vec2 depthUV = vec2(float(uv.x) / float(size.x), float(uv.y) / float(size.y));
+	vec2 depthUV = (uv + 0.5) / vec2(size);
 	float depth = texture(depth_image, depthUV).r;
 
-	vec4 view = inverse(scene_data_block.data.projection_matrix) * vec4(depthUV*2.0-1.0,depth,1.0);
+	vec4 view = scene_data_block.data.inv_projection_matrix * vec4(depthUV*2.0-1.0,depth,1.0);
 	view.xyz /= view.w;
 	float linear_depth = length(view); //used to calculate depth based on the view angle, idk just works.
 	//4.4 doesn't work with this
@@ -435,7 +435,7 @@ void main() {
 	vec2 ndc = clipUV * 2.0 - 1.0;	
 	// Convert NDC to view space coordinates
 	vec4 clipPos = vec4(ndc, 0.0, 1.0);
-	vec4 viewPos = inverse(scene_data_block.data.projection_matrix) * clipPos;
+	vec4 viewPos = scene_data_block.data.inv_projection_matrix * clipPos;
 	viewPos.xyz /= viewPos.w;
 	
 	vec3 rd_world = normalize(viewPos.xyz);

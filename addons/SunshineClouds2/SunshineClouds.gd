@@ -114,6 +114,14 @@ var prepass_pipeline : RID = RID()
 var postpass_shader : RID = RID()
 var postpass_pipeline : RID = RID()
 
+var display_shader : RID = RID()
+var display_pipeline : RID = RID()
+var display_vertex_format : int
+var display_vertex_buffer : RID = RID()
+var display_vertex_array : RID = RID()
+
+var framebuffer_format : int
+
 var nearest_sampler : RID = RID()
 var linear_sampler : RID = RID()
 var linear_sampler_no_repeat : RID = RID()
@@ -125,7 +133,7 @@ var accumulation_textures : Array[RID] = []
 var resized_depth : RID = RID()
 var last_size : Vector2i = Vector2i(0, 0)
 var color_images : Array[RID] = []
-var msaa_color_images : Array[RID] = []
+var blit_screen_images : Array[RID] = []
 
 var buffers : RenderSceneBuffersRD
 
@@ -142,6 +150,8 @@ var first_run : bool = true
 var filter_index = 0
 
 var last_render_target : RID
+var last_msaa_mode := RenderingServer.ViewportMSAA.VIEWPORT_MSAA_DISABLED
+var msaa_mode := RenderingServer.ViewportMSAA.VIEWPORT_MSAA_DISABLED
 
 func refresh_compute():
 	maskDrawnRid = RID()
@@ -171,18 +181,46 @@ func _notification(what):
 
 func clear_compute():
 	if rd:
+		if pipeline.is_valid():
+			rd.free_rid(pipeline)
+		pipeline = RID()
+
 		if shader.is_valid():
 			rd.free_rid(shader)
 		shader = RID()
-		
+
+		if prepass_pipeline.is_valid():
+			rd.free_rid(prepass_pipeline)
+		prepass_pipeline = RID()
+
 		if prepass_shader.is_valid():
 			rd.free_rid(prepass_shader)
 		prepass_shader = RID()
-		
+
+		if postpass_pipeline.is_valid():
+			rd.free_rid(postpass_pipeline)
+		postpass_pipeline = RID()
+
 		if postpass_shader.is_valid():
 			rd.free_rid(postpass_shader)
 		postpass_shader = RID()
-		
+
+		if display_pipeline.is_valid():
+			rd.free_rid(display_pipeline)
+		display_pipeline = RID()
+
+		if display_shader.is_valid():
+			rd.free_rid(display_shader)
+		display_shader = RID()
+
+		if display_vertex_array.is_valid():
+			rd.free_rid(display_vertex_array)
+		display_vertex_array = RID()
+
+		if display_vertex_buffer.is_valid():
+			rd.free_rid(display_vertex_buffer)
+		display_vertex_buffer = RID()
+
 		if nearest_sampler.is_valid():
 			rd.free_rid(nearest_sampler)
 		nearest_sampler = RID()
@@ -216,12 +254,12 @@ func clear_compute():
 				if item.is_valid():
 					rd.free_rid(item)
 			accumulation_textures.clear()
-		
-		if msaa_color_images.size() > 0:
-			for item in msaa_color_images:
+
+		if blit_screen_images.size() > 0:
+			for item in blit_screen_images:
 				if item.is_valid():
 					rd.free_rid(item)
-			msaa_color_images.clear()
+			blit_screen_images.clear()
 
 func initialize_compute():
 	first_run = true
@@ -276,9 +314,15 @@ func initialize_compute():
 		compute_shader = ResourceLoader.load("res://addons/SunshineClouds2/SunshineCloudsCompute.glsl")
 	if not pre_pass_compute_shader:
 		pre_pass_compute_shader = ResourceLoader.load("res://addons/SunshineClouds2/SunshineCloudsPreCompute.glsl")
-	if not post_pass_compute_shader:
+	var display_shader_file : RDShaderFile
+	if msaa_mode == RenderingServer.ViewportMSAA.VIEWPORT_MSAA_DISABLED:
 		post_pass_compute_shader = ResourceLoader.load("res://addons/SunshineClouds2/SunshineCloudsPostCompute.glsl")
-	if not compute_shader or not pre_pass_compute_shader or not post_pass_compute_shader:
+		display_shader_file = ResourceLoader.load("res://addons/SunshineClouds2/SunshineCloudsDisplay.glsl")
+	else:
+		post_pass_compute_shader = ResourceLoader.load("res://addons/SunshineClouds2/SunshineCloudsPostCompute.msaa.glsl")
+		display_shader_file = ResourceLoader.load("res://addons/SunshineClouds2/SunshineCloudsDisplay.msaa.glsl")
+
+	if not compute_shader or not pre_pass_compute_shader or not post_pass_compute_shader or not display_shader_file:
 		enabled = false
 		printerr("No Shader found on load.")
 		clear_compute()
@@ -317,17 +361,82 @@ func initialize_compute():
 		clear_compute()
 		return
 
+
+	var display_shader_spirv = display_shader_file.get_spirv()
+	display_shader = rd.shader_create_from_spirv(display_shader_spirv)
+	if not display_shader.is_valid():
+		enabled = false
+		printerr("Display Shader failed to compile.")
+		clear_compute()
+		return
+
+
+	var display_vertex_attributes : Array[RDVertexAttribute] = [RDVertexAttribute.new()]
+	display_vertex_attributes[0].format = RenderingDevice.DataFormat.DATA_FORMAT_R32G32_SFLOAT
+	display_vertex_attributes[0].frequency = RenderingDevice.VERTEX_FREQUENCY_VERTEX
+	display_vertex_attributes[0].location = 0
+	display_vertex_attributes[0].offset = 0
+	display_vertex_attributes[0].stride = 8
+
+	display_vertex_format = rd.vertex_format_create(display_vertex_attributes)
+
+	# full-screen quad
+	var display_vertex_data : PackedByteArray = PackedFloat32Array([
+		-1.0, -1.0,
+		 1.0, -1.0,
+		-1.0,  1.0,
+		-1.0,  1.0,
+		 1.0, -1.0,
+		 1.0,  1.0,
+	]).to_byte_array()
+	display_vertex_buffer = rd.vertex_buffer_create(display_vertex_data.size(), display_vertex_data)
+	display_vertex_array = rd.vertex_array_create(6, display_vertex_format, [display_vertex_buffer])
+
+	last_msaa_mode = msaa_mode
+
+func initialize_raster_pipelines(color_texture : RID, depth_texture : RID):
+	var rd := RenderingServer.get_rendering_device()
+	assert(rd != null)
+
+	var framebuffer_attachmentformats : Array[RDAttachmentFormat] = [ RDAttachmentFormat.new(), RDAttachmentFormat.new() ]
+	framebuffer_attachmentformats[0].format = rd.texture_get_format(color_texture).format
+	framebuffer_attachmentformats[0].samples = rd.texture_get_format(color_texture).samples
+	framebuffer_attachmentformats[0].usage_flags = rd.texture_get_format(color_texture).usage_bits
+	framebuffer_attachmentformats[1].format = rd.texture_get_format(depth_texture).format
+	framebuffer_attachmentformats[1].samples = rd.texture_get_format(depth_texture).samples
+	framebuffer_attachmentformats[1].usage_flags = rd.texture_get_format(depth_texture).usage_bits
+	framebuffer_format = rd.framebuffer_format_create(framebuffer_attachmentformats);
+
+	var pipeline_rasterization_state := RDPipelineRasterizationState.new()
+
+	var pipeline_multisample_state := RDPipelineMultisampleState.new()
+	match msaa_mode:
+		RenderingServer.ViewportMSAA.VIEWPORT_MSAA_2X:
+			pipeline_multisample_state.sample_count = RenderingDevice.TextureSamples.TEXTURE_SAMPLES_2
+		RenderingServer.ViewportMSAA.VIEWPORT_MSAA_4X:
+			pipeline_multisample_state.sample_count = RenderingDevice.TextureSamples.TEXTURE_SAMPLES_4
+		RenderingServer.ViewportMSAA.VIEWPORT_MSAA_8X:
+			pipeline_multisample_state.sample_count = RenderingDevice.TextureSamples.TEXTURE_SAMPLES_8
+		_:
+			pipeline_multisample_state.sample_count = RenderingDevice.TextureSamples.TEXTURE_SAMPLES_1
+
+	var pipeline_depthstencil_state := RDPipelineDepthStencilState.new()
+
+	var pipeline_colorblend_state := RDPipelineColorBlendState.new()
+	var pipeline_colorblend_state_attachment := RDPipelineColorBlendStateAttachment.new()
+	pipeline_colorblend_state.attachments.append(pipeline_colorblend_state_attachment)
+
+	display_pipeline = rd.render_pipeline_create(display_shader, framebuffer_format, display_vertex_format, RenderingDevice.RenderPrimitive.RENDER_PRIMITIVE_TRIANGLES, pipeline_rasterization_state, pipeline_multisample_state, pipeline_depthstencil_state, pipeline_colorblend_state)
+
 func _render_callback(effect_callback_type, render_data):
 	if rd == null:
 		initialize_compute()
 	elif pipeline.is_valid() and height_gradient and extra_large_noise_patterns and large_scale_noise and medium_scale_noise and small_scale_noise and dither_noise and curl_noise:
 		buffers = render_data.get_render_scene_buffers() as RenderSceneBuffersRD
 		if buffers:
-			
-			var msaa = buffers.get_msaa_3d() != 0
-			if msaa:
-				return
-			
+			msaa_mode = buffers.get_msaa_3d()
+			var is_msaa_on := msaa_mode != RenderingServer.ViewportMSAA.VIEWPORT_MSAA_DISABLED
+
 			var size = buffers.get_internal_size()
 			if size.x == 0 and size.y == 0:
 				return
@@ -346,33 +455,34 @@ func _render_callback(effect_callback_type, render_data):
 			var new_size = size / resscale
 			var view_count = buffers.get_view_count()
 			var rendersceneData : RenderSceneData = render_data.get_render_scene_data();
-			
-			if size != last_size or uniform_sets == null or uniform_sets.size() != view_count * 3 or color_images.size() == 0 or color_images[0] != buffers.get_color_layer(0):
+
+			if size != last_size or uniform_sets == null or uniform_sets.size() != view_count * 4 or color_images.size() == 0 or color_images[0] != buffers.get_color_layer(0) or blit_screen_images.size() == 0 or msaa_mode != last_msaa_mode:
 				initialize_compute()
-				
+				initialize_raster_pipelines(buffers.get_color_layer(0, is_msaa_on), buffers.get_depth_layer(0, is_msaa_on))
+
 				accumulation_textures.clear()
 				uniform_sets.clear()
 
 				color_images.clear()
-				msaa_color_images.clear()
-				
-				#print("postpass_push_constants",postpass_push_constants.size())
+				for item in blit_screen_images:
+					if item.is_valid():
+						rd.free_rid(item)
+				blit_screen_images.clear()
+
 				for view in range(view_count):
-					color_images.append(buffers.get_color_layer(view, msaa))
-					
-					var depth_image : RID = buffers.get_depth_layer(view, msaa)
-					
+					color_images.append(buffers.get_color_layer(view, false))
+
+					var depth_image : RID = buffers.get_depth_layer(view, false)
+
 					var blankImageData : PackedByteArray = []
 					blankImageData.resize(new_size.x * new_size.y * 4 * 4)
 					
 					var base_colorformat : RDTextureFormat = rd.texture_get_format(color_images[view])
-					
-					
-					if (msaa):
-						base_colorformat.usage_bits = RenderingDevice.TEXTURE_USAGE_STORAGE_BIT | RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_CAN_COPY_TO_BIT | RenderingDevice.TEXTURE_USAGE_CAN_COPY_FROM_BIT
-						
-						msaa_color_images.append(rd.texture_create(base_colorformat, RDTextureView.new(), []))
-					
+
+					var blit_screen_format : RDTextureFormat = rd.texture_get_format(buffers.get_color_layer(view, is_msaa_on))
+					blit_screen_format.usage_bits |= RenderingDevice.TEXTURE_USAGE_STORAGE_BIT | RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT
+					blit_screen_images.append(rd.texture_create(blit_screen_format, RDTextureView.new()))
+
 					base_colorformat.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT
 					base_colorformat.width = new_size.x
 					base_colorformat.height = new_size.y
@@ -395,8 +505,8 @@ func _render_callback(effect_callback_type, render_data):
 					depthformat.format = RenderingDevice.DATA_FORMAT_R32_SFLOAT
 					depthformat.usage_bits = RenderingDevice.TEXTURE_USAGE_STORAGE_BIT | RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT
 					resized_depth = rd.texture_create(depthformat, RDTextureView.new(), [])
-					
-					#Prepass Compute Shader
+
+					#region Prepass Compute Shader
 					var prepass_uniforms_array : Array[RDUniform] = []
 					var prepass_depth_uniform = RDUniform.new()
 					prepass_depth_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE
@@ -418,8 +528,9 @@ func _render_callback(effect_callback_type, render_data):
 					prepass_uniforms_array.append(prepass_camera_uniform)
 					
 					uniform_sets.append(rd.uniform_set_create(prepass_uniforms_array, prepass_shader, 0))
-					
-					#Base Compute Shader
+					#endregion
+
+					#region Base Compute Shader
 					var uniforms_array : Array[RDUniform] = []
 					var output_data_uniform = RDUniform.new()
 					output_data_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
@@ -544,8 +655,9 @@ func _render_callback(effect_callback_type, render_data):
 					uniforms_array.append(camera_data_uniform)
 					
 					uniform_sets.append(rd.uniform_set_create(uniforms_array, shader, 0))
-					
-					#Post Pass Compute Shader
+					#endregion
+
+					#region Post Pass Compute Shader
 					var postpass_uniforms_array : Array[RDUniform] = []
 					var prepass_color_data_uniform = RDUniform.new()
 					prepass_color_data_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE
@@ -572,65 +684,65 @@ func _render_callback(effect_callback_type, render_data):
 						var newTexture = Texture2DRD.new()
 						newTexture.texture_rd_rid = accumulation_textures[view * 7 + 6]
 						RenderingServer.global_shader_parameter_set(reflections_globalshaderparam, newTexture)
-					
-					var postpass_color_uniform = RDUniform.new()
-					postpass_color_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
-					postpass_color_uniform.binding = 3
-					postpass_color_uniform.add_id(msaa_color_images[view] if msaa else color_images[view])
-					postpass_uniforms_array.append(postpass_color_uniform)
-					
+
+					var postpass_input_screen_uniform = RDUniform.new()
+					postpass_input_screen_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE
+					postpass_input_screen_uniform.binding = 3
+					postpass_input_screen_uniform.add_id(nearest_sampler)
+					postpass_input_screen_uniform.add_id(buffers.get_color_layer(view, is_msaa_on))
+					postpass_uniforms_array.append(postpass_input_screen_uniform)
+
+					var postpass_output_screen_uniform = RDUniform.new()
+					postpass_output_screen_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
+					postpass_output_screen_uniform.binding = 4
+					postpass_output_screen_uniform.add_id(blit_screen_images[view])
+					postpass_uniforms_array.append(postpass_output_screen_uniform)
+
 					var postpass_depth_uniform = RDUniform.new()
 					postpass_depth_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE
-					postpass_depth_uniform.binding = 4
+					postpass_depth_uniform.binding = 5
 					postpass_depth_uniform.add_id(nearest_sampler)
-					postpass_depth_uniform.add_id(depth_image)
+					postpass_depth_uniform.add_id(buffers.get_depth_layer(view, is_msaa_on))
 					postpass_uniforms_array.append(postpass_depth_uniform)
 					
 					var postpass_camera_uniform = RDUniform.new()
 					postpass_camera_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_UNIFORM_BUFFER
-					postpass_camera_uniform.binding = 5
+					postpass_camera_uniform.binding = 6
 					postpass_camera_uniform.add_id(general_data_buffer)
 					postpass_uniforms_array.append(postpass_camera_uniform)
 					
 					var postpass_light_data_uniform = RDUniform.new()
 					postpass_light_data_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_UNIFORM_BUFFER
-					postpass_light_data_uniform.binding = 6
+					postpass_light_data_uniform.binding = 7
 					postpass_light_data_uniform.add_id(light_data_buffer)
 					postpass_uniforms_array.append(postpass_light_data_uniform)
 					
 					var postpass_camera_data_uniform = RDUniform.new()
 					postpass_camera_data_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_UNIFORM_BUFFER
-					postpass_camera_data_uniform.binding = 7
+					postpass_camera_data_uniform.binding = 8
 					postpass_camera_data_uniform.add_id(cameraData)
 					postpass_uniforms_array.append(postpass_camera_data_uniform)
 					
 					uniform_sets.append(rd.uniform_set_create(postpass_uniforms_array, postpass_shader, 0))
-				
+					#endregion
+
+					#region Display Shader
+					var display_uniforms_array : Array[RDUniform] = []
+					var display_screen_texture_uniform = RDUniform.new()
+					display_screen_texture_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE
+					display_screen_texture_uniform.binding = 0
+					display_screen_texture_uniform.add_id(nearest_sampler)
+					display_screen_texture_uniform.add_id(blit_screen_images[view])
+					display_uniforms_array.append(display_screen_texture_uniform)
+
+					uniform_sets.append(rd.uniform_set_create(display_uniforms_array, display_shader, 0))
+					#endregion
+
 				lights_updated = true
-			
-			# Push constants and matrix updates
-			#var ms = StreamPeerBuffer.new()
-			#ms.put_float(new_size.x)
-			#ms.put_float(new_size.y)
-			#ms.put_float(large_noise_scale)
-			#ms.put_float(medium_noise_scale)
-			#
-			#ms.put_float(current_time)
-			#ms.put_float(clouds_coverage)
-			#ms.put_float(clouds_density)
-			#ms.put_float(clouds_detail_power)
-			#
-			#ms.put_float(lighting_density)
-			#ms.put_float(accumulation_decay)
-			#if (accumulation_is_a):
-				#ms.put_float(1.0)
-			#else:
-				#ms.put_float(0.0)
-			#ms.put_float(0.0)
-			#push_constants = ms.get_data_array()
-			
-			
-			
+
+			var framebuffer := FramebufferCacheRD.get_cache_multipass([buffers.get_color_layer(0, is_msaa_on), buffers.get_depth_layer(0, is_msaa_on)], [], view_count)
+			assert(framebuffer_format == rd.framebuffer_get_format(framebuffer))
+
 			var cameraTR : Transform3D = rendersceneData.get_cam_transform();
 			var viewProj : Projection = rendersceneData.get_cam_projection();
 			
@@ -657,31 +769,31 @@ func _render_callback(effect_callback_type, render_data):
 			var y_groups = ((size.y - 1) / 8 / resscale) + 1
 			
 			for view in view_count:
-				if (msaa):
-					rd.texture_copy(color_images[view], msaa_color_images[view], Vector3.ZERO, Vector3.ZERO, Vector3(size.x, size.y, 0.0),0,0,0,0)
-				
 				var prepass_list = rd.compute_list_begin()
 				rd.compute_list_bind_compute_pipeline(prepass_list, prepass_pipeline)
-				rd.compute_list_bind_uniform_set(prepass_list, uniform_sets[view * 3], 0)
+				rd.compute_list_bind_uniform_set(prepass_list, uniform_sets[view * 4], 0)
 				rd.compute_list_dispatch(prepass_list, x_groups, y_groups, 1)
 				rd.compute_list_end()
 
 				var compute_list = rd.compute_list_begin()
 				rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
-				rd.compute_list_bind_uniform_set(compute_list, uniform_sets[view * 3 + 1], 0)
+				rd.compute_list_bind_uniform_set(compute_list, uniform_sets[view * 4 + 1], 0)
 				rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
 				rd.compute_list_end()
 
 				var postpass_list = rd.compute_list_begin()
 				rd.compute_list_bind_compute_pipeline(postpass_list, postpass_pipeline)
-				rd.compute_list_bind_uniform_set(postpass_list, uniform_sets[view * 3 + 2], 0)
+				rd.compute_list_bind_uniform_set(postpass_list, uniform_sets[view * 4 + 2], 0)
 				rd.compute_list_dispatch(postpass_list, prepass_x_groups, prepass_y_groups, 1)
 				rd.compute_list_end()
-				
-				if (msaa):
-					rd.texture_copy(msaa_color_images[view], color_images[view], Vector3.ZERO, Vector3.ZERO, Vector3(size.x, size.y, 0.0),0,0,0,0)
-				
-			
+
+				var display_list := rd.draw_list_begin(framebuffer, RenderingDevice.DRAW_DEFAULT_ALL)
+				rd.draw_list_bind_render_pipeline(display_list, display_pipeline)
+				rd.draw_list_bind_uniform_set(display_list, uniform_sets[view * 4 + 3], 0)
+				rd.draw_list_bind_vertex_array(display_list, display_vertex_array)
+				rd.draw_list_draw(display_list, false, 1)
+				rd.draw_list_end()
+
 			if (!positionResetting && positionQuerying):
 				positionResetting = true
 				rd.buffer_get_data_async(point_sample_data_buffer, retrieve_position_queries.bind())

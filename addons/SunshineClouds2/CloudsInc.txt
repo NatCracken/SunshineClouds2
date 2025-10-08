@@ -11,6 +11,26 @@
 #define GODOT_VERSION_MAJOR 4
 #define GODOT_VERSION_MINOR 4
 
+#ifndef MSAA_ENABLED
+	#define MSAA_ENABLED 0
+#endif
+
+#if (!MSAA_ENABLED)
+	#define Sampler2DMSAA                              sampler2D
+	#define Image2DMSAA                                image2D
+	#define textureSizeMSAA(sampler_)                  textureSize(sampler_, 0)
+	#define textureSamplesMSAA(sampler_)               (1)
+	#define texelFetchMSAA(sampler_, P_, sample_)      texelFetch(sampler_, P_, 0)
+	#define imageStoreMSAA(image_, P_, sample_, data_) imageStore(image_, P_, data_)
+#else
+	#define Sampler2DMSAA                              sampler2DMS
+	#define Image2DMSAA                                image2DMS
+	#define textureSizeMSAA(sampler_)                  textureSize(sampler_)
+	#define textureSamplesMSAA(sampler_)               textureSamples(sampler_)
+	#define texelFetchMSAA(sampler_, P_, sample_)      texelFetch(sampler_, P_, sample_)
+	#define imageStoreMSAA(image_, P_, sample_, data_) imageStore(image_, P_, sample_, data_)
+#endif // !MSAA_ENABLED
+
 
 struct SceneData {
 	#if (GODOT_VERSION_MAJOR == 4) && (GODOT_VERSION_MINOR == 4)
