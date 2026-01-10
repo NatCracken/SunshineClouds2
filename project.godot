@@ -8,6 +8,10 @@
 
 config_version=5
 
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
+
 [application]
 
 config/name="SunshineClouds2"
@@ -22,10 +26,6 @@ project/assembly_name="SunshineClouds2"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/SunshineClouds2/plugin.cfg")
-
-[rendering]
-
-anti_aliasing/quality/msaa_3d=3
 
 [shader_globals]
 

@@ -447,6 +447,15 @@ void main() {
 
 
 	//DITHER
+
+	// expirements with interleved gradient noise.
+	// float ditherScale = 40.037;
+	// vec3 ditherUV = vec3(depthUV.x * ditherScale , depthUV.y * ditherScale , genericData.data.time);
+	// float smallNoise = texture(dither_small, ditherUV).r;
+	// vec3 ign_noise_uv = vec3(float(uv.x), fract(genericData.data.time) * 2.0 - 1.0, float(uv.y));
+	// float ign_noise = fract(52.9829189 * fract(dot(ign_noise_uv, vec3(0.006711056, 0.00583715, 1.61803398875))));
+	// float ditherValue = ign_noise;
+
 	float ditherScale = 40.037;
 	vec3 ditherUV = vec3(depthUV.x * ditherScale , depthUV.y * ditherScale , genericData.data.time);
 	float smallNoise = texture(dither_small, ditherUV).r;
@@ -850,15 +859,36 @@ void main() {
 	vec3 delta = rayOrigin - scene_data_block.prev_data.main_cam_inv_view_matrix[3].xyz;
 	worldFinalPos += delta;
 
-	//Prevview is already actually the inv_view (due to the way retrieving the transform works), so inversing it here is making it the equalivant of View_Matrix.
-	vec4 reprojectedClipPos = scene_data_block.prev_data.view_matrix * vec4(worldFinalPos, 1.0);
-	
-	reprojectedClipPos.z -= 0.01;
-	if (reprojectedClipPos.z > 0.0){
-		override = true;
-	}
-	
-	vec4 reprojectedScreenPos = scene_data_block.prev_data.projection_matrix * reprojectedClipPos;
+	vec4 reprojectedScreenPos = vec4(0.0);
+
+	#if ((GODOT_VERSION_MAJOR == 4) && (GODOT_VERSION_MINOR == 4)) || ((GODOT_VERSION_MAJOR == 4) && (GODOT_VERSION_MINOR == 5))
+
+		//Prevview is already actually the inv_view (due to the way retrieving the transform works), so inversing it here is making it the equalivant of View_Matrix.
+		vec4 reprojectedClipPos = scene_data_block.prev_data.view_matrix * vec4(worldFinalPos, 1.0);
+		
+		reprojectedClipPos.z -= 0.01;
+		if (reprojectedClipPos.z > 0.0){
+			override = true;
+		}
+		
+		reprojectedScreenPos = scene_data_block.prev_data.projection_matrix * reprojectedClipPos;
+	#else
+		mat4 view_matrix = transpose(mat4(
+			scene_data_block.prev_data.view_matrix[0], 
+			scene_data_block.prev_data.view_matrix[1], 
+			scene_data_block.prev_data.view_matrix[2], 
+			vec4(0.0, 0.0, 0.0, 1.0)));
+
+		//Prevview is already actually the inv_view (due to the way retrieving the transform works), so inversing it here is making it the equalivant of View_Matrix.
+		vec4 reprojectedClipPos = view_matrix * vec4(worldFinalPos, 1.0);
+		
+		reprojectedClipPos.z -= 0.01;
+		if (reprojectedClipPos.z > 0.0){
+			override = true;
+		}
+		
+		reprojectedScreenPos = scene_data_block.prev_data.projection_matrix * reprojectedClipPos;
+	#endif
 
 	// Convert clip space to normalized device coordinates
 	ndc = (reprojectedScreenPos.xy / reprojectedScreenPos.w);
