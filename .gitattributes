@@ -5,3 +5,6 @@
 /**        export-ignore
 /addons    !export-ignore
 /addons/** !export-ignore
+/NewCloudsGD.tres       	!export-ignore
+/CloudsMask.exr     		!export-ignore
+/CloudsMask.exr.import 		!export-ignore
