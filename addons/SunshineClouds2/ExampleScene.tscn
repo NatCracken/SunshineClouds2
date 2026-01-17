@@ -39,7 +39,7 @@ environment = SubResource("Environment_ftegy")
 compositor = SubResource("Compositor_nuogy")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=2088703268]
-transform = Transform3D(-0.866025, -0.28213, 0.412798, 0, 0.825596, 0.564261, -0.5, 0.488664, -0.714988, -8, 2, -2)
+transform = Transform3D(-0.866025, -0.27507216, 0.4175342, 1.4901161e-08, 0.83506835, 0.55014545, -0.5, 0.47643942, -0.7231914, -8, 2, -2)
 shadow_enabled = true
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1641415156]
@@ -85,10 +85,10 @@ light_energy = 11.685
 omni_range = 20000.0
 
 [node name="SunshineCloudsEffector" type="Node3D" parent="." unique_id=2140400999]
-transform = Transform3D(0.241651, 0, 0.970363, 0, 1, 0, -0.970363, 0, 0.241651, 19316.8, -2863.07, -3971.34)
+transform = Transform3D(0.241651, 0, 0.970363, 0, 1, 0, -0.970363, 0, 0.241651, 938.9844, 10869.272, 2676.755)
 script = ExtResource("3_afwv5")
 Radius = 18900.9
-Power = 1.18
+Power = 1.5
 metadata/_custom_type_script = "uid://bxlm4e5qfb7uu"
 
 [node name="SunshineCloudsDriverGD" type="Node" parent="." unique_id=1968101892 node_paths=PackedStringArray("tracked_directional_lights", "tracked_point_lights", "tracked_point_effectors")]
@@ -100,12 +100,8 @@ tracked_directional_lights = [NodePath("../DirectionalLight3D")]
 tracked_directional_light_shadow_steps = Array[int]([32])
 tracked_point_lights = [NodePath("../OmniLight3D")]
 tracked_point_effectors = [NodePath("../SunshineCloudsEffector")]
-extra_large_structures_wind_speed = 0.0
-large_structures_wind_speed = 0.0
-medium_structures_wind_speed = 0.0
-small_structures_wind_speed = 0.0
 metadata/_custom_type_script = "uid://djusduuxf0voj"
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=983599202]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12376.3, 3579.21)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 572.5508, 12376.3, -20899.64)
 far = 400000.0

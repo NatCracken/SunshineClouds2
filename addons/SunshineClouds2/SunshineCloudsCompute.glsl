@@ -524,10 +524,10 @@ void main() {
 	float maxTheoreticalStep = float(stepCount) * maxstep;
 	float highestDensity = 0.0;
 	float highestDensityDistance = maxTheoreticalStep;
-	float ceilingSample = cloudceiling;
+	//float ceilingSample = cloudceiling;
 	float lodMaxDistance = maxstep * float(stepCount) * genericData.data.lod_bias;
-	float halfcloudThickness = (cloudceiling - cloudfloor) * 0.5;
-	float halfCeiling = cloudceiling - halfcloudThickness;
+	//float halfcloudThickness = (cloudceiling - cloudfloor) * 0.5;
+	//float halfCeiling = cloudceiling - halfcloudThickness;
 	
 
 	float newStep = maxstep * ditherValue;
@@ -667,9 +667,10 @@ void main() {
 		for (int i = 0; i < samplePosCount; i++){
 			curPos = SamplePoints[i].xyz;
 			vec4 maskSample = texture(extra_large_noise, (curPos.xz - extralargeNoisePos.xz) / extralargenoiseScale);
-			ceilingSample = mix(halfCeiling, cloudceiling, maskSample.a);
+			//ceilingSample = mix(halfCeiling, cloudceiling, maskSample.a);
+			//ceilingSample = cloudceiling;
 			
-			SamplePoints[i].w = pow(sampleScene(largeNoisePos, mediumNoisePos, smallNoisePos, curPos, ceilingSample, cloudfloor, maskSample.a, largenoiseScale, mediumnoiseScale, smallnoiseScale, coverage, smallNoiseMultiplier, curlPower, 1.0, false) * densityMultiplier, sharpness);
+			SamplePoints[i].w = pow(sampleScene(largeNoisePos, mediumNoisePos, smallNoisePos, curPos, cloudceiling, cloudfloor, maskSample.a, largenoiseScale, mediumnoiseScale, smallnoiseScale, coverage, smallNoiseMultiplier, curlPower, 1.0, false) * densityMultiplier, sharpness);
 		}
 	}
 
@@ -683,17 +684,18 @@ void main() {
 		curPos = rayOrigin + raydirection * traveledDistance;
 		
 		vec4 maskSample = texture(extra_large_noise, (curPos.xz - extralargeNoisePos.xz) / extralargenoiseScale);
-		ceilingSample = mix(halfCeiling, cloudceiling, maskSample.a);
+		//ceilingSample = mix(halfCeiling, cloudceiling, maskSample.a);
+		//ceilingSample = cloudceiling;
 		
 		//sampleAtmospherics(curPos, atmosphericHeight, newStep, Rayleighscaleheight, Miescaleheight, RayleighScatteringCoef, MieScatteringCoef, atmosphericDensity, density, totalRlh, totalMie, iOdRlh, iOdMie); 
 		atmoSamples += 1.0;
 		if (clamp(curPos.y, cloudfloor, cloudceiling) == curPos.y){
 
 			curLod = 1.0 - clamp(traveledDistance / lodMaxDistance, 0.0, 1.0);
-			newdensity = sampleSceneCoarse(largeNoisePos, curPos, ceilingSample, cloudfloor, maskSample.a, largenoiseScale, coverage, curLod);
+			newdensity = sampleSceneCoarse(largeNoisePos, curPos, cloudceiling, cloudfloor, maskSample.a, largenoiseScale, coverage, curLod);
 			
 			if (newdensity > 0.0) {
-				newdensity = pow(sampleScene(largeNoisePos, mediumNoisePos, smallNoisePos, curPos, ceilingSample, cloudfloor, maskSample.a, largenoiseScale, mediumnoiseScale, smallnoiseScale, coverage, smallNoiseMultiplier, curlPower, curLod, false) * densityMultiplier, sharpness) * depthFade;
+				newdensity = pow(sampleScene(largeNoisePos, mediumNoisePos, smallNoisePos, curPos, cloudceiling, cloudfloor, maskSample.a, largenoiseScale, mediumnoiseScale, smallnoiseScale, coverage, smallNoiseMultiplier, curlPower, curLod, false) * densityMultiplier, sharpness) * depthFade;
 			}
 			
 			
@@ -712,7 +714,7 @@ void main() {
 
 					int thislightingStepCount = min(int(directionalLights[lightI].direction.w), lightingStepCount);
 					float henyeygreenstein =  pow(HenyeyGreenstein(genericData.data.anisotropy, directionalLightSunUpPower[lightI].b), mix(1.0, 2.0, 1.0 - genericData.data.anisotropy)); 
-					float densitySample = sampleLighting(thislightingStepCount, curPos, extralargeNoisePos, largeNoisePos, mediumNoisePos, smallNoisePos, sundir, densityMultiplier * lightingdensityMultiplier, sunUpWeight, lightingStepDistance, ceilingSample, cloudfloor, extralargenoiseScale, largenoiseScale, mediumnoiseScale, smallnoiseScale, coverage, smallNoiseMultiplier, curlPower, curLod);
+					float densitySample = sampleLighting(thislightingStepCount, curPos, extralargeNoisePos, largeNoisePos, mediumNoisePos, smallNoisePos, sundir, densityMultiplier * lightingdensityMultiplier, sunUpWeight, lightingStepDistance, cloudceiling, cloudfloor, extralargenoiseScale, largenoiseScale, mediumnoiseScale, smallnoiseScale, coverage, smallNoiseMultiplier, curlPower, curLod);
 					densitySample = BeersLaw(lightingStepDistance, densitySample * henyeygreenstein);
 					//densitySample = Powder(lightingStepDistance, densitySample);
 					float thisStepLightingWeight = (clamp(pow(densitySample, lightingSharpness), 0.0, 1.0)) * sunUpWeight;
@@ -767,7 +769,7 @@ void main() {
 					if (pointLights[lightI].color.a > 0.0 && lightDistanceWeight < pointLights[lightI].position.w){
 						lightToOriginDelta = normalize(lightToOriginDelta);
 						//float densitySample = 1.0 - newdensity;
-						float densitySample = sampleLighting(3, curPos, extralargeNoisePos, largeNoisePos, mediumNoisePos, smallNoisePos, lightToOriginDelta, densityMultiplier, 1.0, min(maxstep, lightDistanceWeight), ceilingSample, cloudfloor, extralargenoiseScale, largenoiseScale, mediumnoiseScale, smallnoiseScale, coverage, smallNoiseMultiplier, curlPower, curLod);
+						float densitySample = sampleLighting(3, curPos, extralargeNoisePos, largeNoisePos, mediumNoisePos, smallNoisePos, lightToOriginDelta, densityMultiplier, 1.0, min(maxstep, lightDistanceWeight), cloudceiling, cloudfloor, extralargenoiseScale, largenoiseScale, mediumnoiseScale, smallnoiseScale, coverage, smallNoiseMultiplier, curlPower, curLod);
 						
 						float henyeygreenstein = pow(HenyeyGreenstein(genericData.data.anisotropy, dot(lightToOriginDelta, raydirection)), mix(1.0, 2.0, 1.0 - genericData.data.anisotropy)); 
 						densitySample = BeersLaw(lightDistanceWeight, densitySample * henyeygreenstein);
@@ -781,7 +783,7 @@ void main() {
 				}
 				
 				if (aobase.a > 0.0){
-					ambient += sampleScene(largeNoisePos, mediumNoisePos, smallNoisePos, curPos + vec3(0.0, 1.0, 0.0) * minstep, ceilingSample, cloudfloor, maskSample.a, largenoiseScale, mediumnoiseScale, smallnoiseScale, coverage, smallNoiseMultiplier, curlPower, curLod, true) * densityMultiplier * lightingdensityMultiplier ;
+					ambient += sampleScene(largeNoisePos, mediumNoisePos, smallNoisePos, curPos + vec3(0.0, 1.0, 0.0) * minstep, cloudceiling, cloudfloor, maskSample.a, largenoiseScale, mediumnoiseScale, smallnoiseScale, coverage, smallNoiseMultiplier, curlPower, curLod, true) * densityMultiplier * lightingdensityMultiplier ;
 				}
 
 				
