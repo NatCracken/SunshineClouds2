@@ -835,7 +835,9 @@ void main() {
 	lightColor.rgb = ambientLight + clamp(lightColor.rgb / lightingSamples, vec3(0.0), vec3(2.0));
 	lightColor.a = density;
 
-
+	vec3 physicalFogColor = lightColor.rgb;
+	float fogweight = 0.0;
+	
 	if (linear_depth > maxstep && directionalLightCount > 0.0){
 		for (float i = 0.0; i < directionalLightCount; i++){
 			DirectionalLight light = directionalLights[int(i)];
@@ -846,10 +848,16 @@ void main() {
 			// sundensityaffect = min(1.0 - (sundensityaffect * density), 1.0 - (sundensityaffect * clamp(maxTheoreticalStep - linear_depth, 0.0, 1.0)));
 			float lightPower = light.color.a * sunUpWeight * sundensityaffect;
 			vec4 atmosphericData = sampleAllAtmospherics(rayOrigin, raydirection, linear_depth, traveledDistance, 0.0, traveledDistance / 10.0, 10.0, atmosphericDensity, sundir, light.color.rgb * lightPower, ambientfogdistancecolor);
-			lightColor.rgb = mix(lightColor.rgb, atmosphericData.rgb, clamp(atmosphericData.a, 0.0, 1.0)); //causes jitter in the sky
+			
+			physicalFogColor = mix(physicalFogColor, atmosphericData.rgb, clamp(atmosphericData.a, 0.0, 1.0)); //causes jitter in the sky
+			fogweight += clamp(atmosphericData.a, 0.0, 1.0);
 		}
 	}
 
+
+
+	lightColor.rgb = mix(physicalFogColor, mix(lightColor.rgb, ambientfogdistancecolor, clamp(fogweight, 0.0, 1.0)),  genericData.data.atmosphere_simple_blend);
+	//lightColor.rgb = physicalFogColor;
 	initialdistanceSample = max(initialdistanceSample, 0.0);
 
 

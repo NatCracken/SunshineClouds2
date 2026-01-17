@@ -9,7 +9,7 @@
 #define MAX_VIEWS 2
 
 #define GODOT_VERSION_MAJOR 4
-#define GODOT_VERSION_MINOR 5
+#define GODOT_VERSION_MINOR 6
 
 #ifndef MSAA_ENABLED
 	#define MSAA_ENABLED 0
@@ -274,7 +274,7 @@ struct GenericData{
 	float max_step_count;
 	float max_lighting_step_count;
 
-	float filterIndex;
+	float atmosphere_simple_blend;
 	float blurPower;
 	float blurQuality;
 	float curlPower;

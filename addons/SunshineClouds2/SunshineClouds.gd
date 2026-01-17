@@ -11,13 +11,16 @@ class_name SunshineCloudsGD
 @export_range(0, 2) var atmospheric_density : float = 0.7
 @export_range(0, 10) var lighting_density : float = 0.25
 @export_range(0, 1) var fog_effect_ground : float = 1.0
+@export_range(0, 1) var use_environment_fog : float = 0.0
 
 @export_subgroup("Colors")
 @export_range(0, 1) var clouds_anisotropy : float = 0.18
 @export_range(0, 1) var clouds_powder : float = 0.851
 @export var cloud_ambient_color : Color = Color(0.763, 0.786, 0.822)
 @export var cloud_ambient_tint : Color = Color(0.132, 0.202, 0.242)
+
 @export var atmosphere_color : Color = Color(0.696, 0.832, 0.989)
+@export var sampled_environment_fog_color : Color = Color(0.696, 0.832, 0.989)
 @export var ambient_occlusion_color : Color = Color(0.54, 0.108, 0.0, 0.871)
 
 @export_subgroup("Structure")
@@ -978,10 +981,10 @@ func update_matrices(camera_tr, view_proj, new_size: Vector2i):
 	general_data.encode_float(idx, ambient_occlusion_color.b); idx += 4
 	general_data.encode_float(idx, ambient_occlusion_color.a); idx += 4
 
-	general_data.encode_float(idx, atmosphere_color.r); idx += 4
-	general_data.encode_float(idx, atmosphere_color.g); idx += 4
-	general_data.encode_float(idx, atmosphere_color.b); idx += 4
-	general_data.encode_float(idx, atmosphere_color.a); idx += 4
+	general_data.encode_float(idx, lerpf(atmosphere_color.r, sampled_environment_fog_color.r, use_environment_fog)); idx += 4
+	general_data.encode_float(idx, lerpf(atmosphere_color.r, sampled_environment_fog_color.g, use_environment_fog)); idx += 4
+	general_data.encode_float(idx, lerpf(atmosphere_color.r, sampled_environment_fog_color.b, use_environment_fog)); idx += 4
+	general_data.encode_float(idx, lerpf(atmosphere_color.r, sampled_environment_fog_color.a, use_environment_fog)); idx += 4
 
 	general_data.encode_float(idx, small_noise_scale); idx += 4
 	general_data.encode_float(idx, min_step_distance); idx += 4
@@ -998,7 +1001,7 @@ func update_matrices(camera_tr, view_proj, new_size: Vector2i):
 	general_data.encode_float(idx, float(max_step_count)); idx += 4
 	general_data.encode_float(idx, float(max_lighting_steps)); idx += 4
 
-	general_data.encode_float(idx, float(filter_index)); idx += 4
+	general_data.encode_float(idx, use_environment_fog); idx += 4
 	general_data.encode_float(idx, float(blur_power)); idx += 4
 	general_data.encode_float(idx, float(blur_quality)); idx += 4
 	general_data.encode_float(idx, float(curl_noise_strength)); idx += 4
