@@ -825,6 +825,7 @@ void main() {
 		traveledDistance += newStep;
 	}
 
+	density *= clamp(smoothstep(maxstep * stepCount, minstep * stepCount, traveledDistance), 0.0, 1.0);
 
 	ambient = clamp(ambient / lightingSamples, 0.0, 1.0);
 	paintedColor = clamp(paintedColor / lightingSamples, 0.0, 1.0);

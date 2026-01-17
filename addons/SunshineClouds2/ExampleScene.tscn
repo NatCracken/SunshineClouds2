@@ -19,7 +19,7 @@ glow_enabled = true
 fog_mode = 1
 fog_density = 1.0
 fog_depth_begin = 2490.6
-fog_depth_end = 4000.0
+fog_depth_end = 40000.0
 
 [sub_resource type="Compositor" id="Compositor_nuogy"]
 compositor_effects = Array[CompositorEffect]([ExtResource("1_nv18y")])
