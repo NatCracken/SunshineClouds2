@@ -333,7 +333,7 @@ void main() {
 			float firsttravelblend = mix(1.0 - clamp((traveledDistance - firstTraveledDistance) / minstep, 0.0, 1.0), 1.0, clamp(firstTraveledDistance / maxstep, 0.0, 1.0));
 			lerp = (clamp((traveledDistance - linear_depth) / (traveledDistance - firstTraveledDistance), 0.0, 1.0)) * firsttravelblend;
 		}
-		density *= smoothstep(0.0, minstep, linear_depth);
+		density *= smoothstep(minstep, minstep * 2.0, linear_depth);
 		density = clamp(density - lerp, 0.0, 1.0);
 		float groundLinearFade = mix(smoothstep(maxTheoreticalStep, maxTheoreticalStep, linear_depth), 1.0, genericData.data.fogEffectGround);
 
