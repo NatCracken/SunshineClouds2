@@ -935,7 +935,7 @@ void main() {
 		float if_break = max(float(override), abs(length(clampedUV - adjustedUV)));
 		// if_break = max(if_break, lightColor.a - 0.8 - currentColorAccumilation.a); //Lets super high accumilation still look passable, but at the cost of less soft edges.
 
-		if (if_break > 0.0 || (currentDepthBreak != currentDataAccumilation.a && abs(linear_depth - currentDataAccumilation.r) > travelspeed)){
+		if (if_break > 0.0 || (currentDepthBreak != currentDataAccumilation.a && abs(linear_depth - currentDataAccumilation.r) > travelspeed * 0.5)){
 			currentColorAccumilation = lightColor;
 			//debugCollisions = true;
 			currentDataAccumilation.r = linear_depth;
@@ -965,7 +965,7 @@ void main() {
 		float if_break = max(float(override), abs(length(clampedUV - adjustedUV)));
 		// if_break = max(if_break, lightColor.a - 0.8 - currentColorAccumilation.a); //Lets super high accumilation still look passable, but at the cost of less soft edges.
 
-		if (if_break > 0.0 || (currentDepthBreak != currentDataAccumilation.a && abs(linear_depth - currentDataAccumilation.r) > travelspeed)){
+		if (if_break > 0.0 || (currentDepthBreak != currentDataAccumilation.a && abs(linear_depth - currentDataAccumilation.r) > travelspeed * 0.5)){
 			currentColorAccumilation = lightColor;
 			//debugCollisions = true;
 			currentDataAccumilation.r = linear_depth;
