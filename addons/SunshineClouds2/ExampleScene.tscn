@@ -27,6 +27,8 @@ compositor_effects = Array[CompositorEffect]([ExtResource("1_nv18y")])
 [sub_resource type="CylinderMesh" id="CylinderMesh_o8tia"]
 height = 1.0
 
+[sub_resource type="BoxMesh" id="BoxMesh_nv18y"]
+
 [sub_resource type="PlaneMesh" id="PlaneMesh_o8tia"]
 size = Vector2(10, 10)
 
@@ -47,8 +49,8 @@ transform = Transform3D(1000, 0, 0, 0, 12000, 0, 0, 0, 1000, 6000, 6000, 0)
 mesh = SubResource("CylinderMesh_o8tia")
 
 [node name="MeshInstance3D2" type="MeshInstance3D" parent="." unique_id=1396086920]
-transform = Transform3D(1000, 0, 0, 0, 12000, 0, 0, 0, 1000, 6000, 6000, -40000)
-mesh = SubResource("CylinderMesh_o8tia")
+transform = Transform3D(1000, 0, 0, 0, 1000, 0, 0, 0, 1000, 6000, 6000, -40000)
+mesh = SubResource("BoxMesh_nv18y")
 
 [node name="MeshInstance3D3" type="MeshInstance3D" parent="." unique_id=2102038455]
 transform = Transform3D(1000, 0, 0, 0, 12000, 0, 0, 0, 1000, 6000, 6000, -20000)
@@ -98,7 +100,7 @@ Radius = 16000.0
 Power = -3.0
 metadata/_custom_type_script = "uid://bxlm4e5qfb7uu"
 
-[node name="SunshineCloudsDriverGD" type="Node" parent="." unique_id=1968101892 node_paths=PackedStringArray("tracked_directional_lights", "tracked_point_lights", "tracked_point_effectors")]
+[node name="SunshineCloudsDriverGD" type="Node" parent="." unique_id=1968101892 node_paths=PackedStringArray("tracked_directional_lights", "tracked_point_lights", "tracked_point_effectors", "ignored_cameras", "ignored_viewports")]
 script = ExtResource("3_unbdf")
 update_continuously = true
 clouds_resource = ExtResource("1_nv18y")
@@ -107,10 +109,13 @@ tracked_directional_lights = [NodePath("../DirectionalLight3D")]
 tracked_directional_light_shadow_steps = Array[int]([32])
 tracked_point_lights = [NodePath("../OmniLight3D")]
 tracked_point_effectors = [NodePath("../SunshineCloudsEffector"), NodePath("../SunshineCloudsEffector2")]
-extra_large_structures_wind_speed = 1400.0
-large_structures_wind_speed = 1000.0
-medium_structures_wind_speed = 400.0
-small_structures_wind_speed = 120.0
+wind_direction = Vector3(2, 0, 2)
+extra_large_structures_wind_speed = 0.0
+large_structures_wind_speed = 0.0
+medium_structures_wind_speed = 0.0
+small_structures_wind_speed = 0.0
+ignored_cameras = []
+ignored_viewports = []
 metadata/_custom_type_script = "uid://djusduuxf0voj"
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=983599202]

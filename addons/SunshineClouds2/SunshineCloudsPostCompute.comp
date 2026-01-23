@@ -268,7 +268,7 @@ void main() {
     ivec2 size = lowres_size * resolutionScale;
 
 
-	vec2 depthUV = (uv + 0.5) / vec2(size);
+	vec2 depthUV = (uv - 0.5) / vec2(size);
 	depthUV = clamp(depthUV, vec2(0.0), vec2(1.0));
 
 	vec2 accumUV = depthUV;

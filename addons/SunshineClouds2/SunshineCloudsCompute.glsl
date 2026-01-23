@@ -929,9 +929,13 @@ void main() {
 		currentColorAccumilation = imageLoad(accum_1A_image, adjustedUV).rgba;
 		currentDataAccumilation = imageLoad(accum_2A_image, adjustedUV).rgba;
 
-		bool lastDepthBreak = currentDataAccumilation.a < 0.0;
+		float currentDepthBreak = float(depthBreak);
 
-		if (override || clampedUV != adjustedUV || (depthBreak != lastDepthBreak && abs(linear_depth - currentDataAccumilation.r) > travelspeed)){
+		// bool lastDepthBreak = currentDataAccumilation.a < 0.0;
+		float if_break = max(float(override), abs(length(clampedUV - adjustedUV)));
+		// if_break = max(if_break, lightColor.a - 0.8 - currentColorAccumilation.a); //Lets super high accumilation still look passable, but at the cost of less soft edges.
+
+		if (if_break > 0.0 || (currentDepthBreak != currentDataAccumilation.a && abs(linear_depth - currentDataAccumilation.r) > travelspeed)){
 			currentColorAccumilation = lightColor;
 			//debugCollisions = true;
 			currentDataAccumilation.r = linear_depth;
@@ -946,12 +950,7 @@ void main() {
 			currentDataAccumilation.b = mix(currentDataAccumilation.b, initialdistanceSample,  (1.0 - accumdecay));
 		}
 
-		if (depthBreak){
-			currentDataAccumilation.a = -1.0;
-		}
-		else{
-			currentDataAccumilation.a = 1.0;
-		}
+		currentDataAccumilation.a = currentDepthBreak;
 
 		imageStore(accum_1B_image, uv, currentColorAccumilation);
 		imageStore(accum_2B_image, uv, currentDataAccumilation);
@@ -960,9 +959,13 @@ void main() {
 		currentColorAccumilation = imageLoad(accum_1B_image, adjustedUV).rgba;
 		currentDataAccumilation = imageLoad(accum_2B_image, adjustedUV).rgba;
 
-		bool lastDepthBreak = currentDataAccumilation.a < 0.0;
+		float currentDepthBreak = float(depthBreak);
 
-		if (override || clampedUV != adjustedUV || (depthBreak != lastDepthBreak && abs(linear_depth - currentDataAccumilation.r) > travelspeed)){
+		// bool lastDepthBreak = currentDataAccumilation.a < 0.0;
+		float if_break = max(float(override), abs(length(clampedUV - adjustedUV)));
+		// if_break = max(if_break, lightColor.a - 0.8 - currentColorAccumilation.a); //Lets super high accumilation still look passable, but at the cost of less soft edges.
+
+		if (if_break > 0.0 || (currentDepthBreak != currentDataAccumilation.a && abs(linear_depth - currentDataAccumilation.r) > travelspeed)){
 			currentColorAccumilation = lightColor;
 			//debugCollisions = true;
 			currentDataAccumilation.r = linear_depth;
@@ -977,12 +980,7 @@ void main() {
 			currentDataAccumilation.b = mix(currentDataAccumilation.b, initialdistanceSample,  (1.0 - accumdecay));
 		}
 
-		if (depthBreak){
-			currentDataAccumilation.a = -1.0;
-		}
-		else{
-			currentDataAccumilation.a = 1.0;
-		}
+		currentDataAccumilation.a = currentDepthBreak;
 
 		imageStore(accum_1A_image, uv, currentColorAccumilation);
 		imageStore(accum_2A_image, uv, currentDataAccumilation);

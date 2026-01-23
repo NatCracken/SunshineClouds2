@@ -1032,6 +1032,7 @@ func update_matrices(camera_tr, view_proj, new_size: Vector2i):
 		general_data.encode_float(idx, 1.0); idx += 4
 	else:
 		general_data.encode_float(idx, 0.0); idx += 4
+	
 	general_data.encode_float(idx, int(pow(2.0, float(resolution_scale)))); idx += 4
 	#
 	#general_data.encode_float(idx, last_size.x); idx += 4
