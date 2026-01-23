@@ -649,7 +649,7 @@ void main() {
 	
 	vec4 lightColor = vec4(0.0);
 	vec3 paintedColor = vec3(0.0);
-	float initialdistanceSample = -1.0;
+	float initialdistanceSample = 0.0;
 
 	float lightingSamples = 0.0;
 	float atmoSamples = 0.0;
@@ -700,7 +700,7 @@ void main() {
 			
 			
 			if (newdensity > 0.0){
-				if (initialdistanceSample < 0.0){
+				if (initialdistanceSample == 0.0){
 					initialdistanceSample = traveledDistance;
 				}
 
@@ -861,7 +861,7 @@ void main() {
 
 	lightColor.rgb = mix(physicalFogColor, mix(lightColor.rgb, ambientfogdistancecolor, clamp(fogweight, 0.0, 1.0)),  genericData.data.atmosphere_simple_blend);
 	//lightColor.rgb = physicalFogColor;
-	initialdistanceSample = max(initialdistanceSample, 0.0);
+	// initialdistanceSample = max(initialdistanceSample, 0.0);
 
 
 	//accumulation preperation:
@@ -939,15 +939,15 @@ void main() {
 			currentColorAccumilation = lightColor;
 			//debugCollisions = true;
 			currentDataAccumilation.r = linear_depth;
-			currentDataAccumilation.g = finalDensityDistance;
-			currentDataAccumilation.b = initialdistanceSample;
+			currentDataAccumilation.g = traveledDistance;
+			currentDataAccumilation.b = finalDensityDistance;
 		}
 		else{
 			currentColorAccumilation = (currentColorAccumilation * accumdecay) + lightColor * (1.0 - accumdecay);
 
 			currentDataAccumilation.r = mix(currentDataAccumilation.r, linear_depth,  (1.0 - accumdecay));
-			currentDataAccumilation.g = mix(currentDataAccumilation.g, finalDensityDistance,  (1.0 - accumdecay));
-			currentDataAccumilation.b = mix(currentDataAccumilation.b, initialdistanceSample,  (1.0 - accumdecay));
+			currentDataAccumilation.g = mix(currentDataAccumilation.g, traveledDistance,  (1.0 - accumdecay));
+			currentDataAccumilation.b = mix(currentDataAccumilation.b, finalDensityDistance,  (1.0 - accumdecay));
 		}
 
 		currentDataAccumilation.a = currentDepthBreak;
@@ -969,15 +969,15 @@ void main() {
 			currentColorAccumilation = lightColor;
 			//debugCollisions = true;
 			currentDataAccumilation.r = linear_depth;
-			currentDataAccumilation.g = finalDensityDistance;
-			currentDataAccumilation.b = initialdistanceSample;
+			currentDataAccumilation.g = traveledDistance;
+			currentDataAccumilation.b = finalDensityDistance;
 		}
 		else{
 			currentColorAccumilation = (currentColorAccumilation * accumdecay) + lightColor * (1.0 - accumdecay);
 
 			currentDataAccumilation.r = mix(currentDataAccumilation.r, linear_depth,  (1.0 - accumdecay));
-			currentDataAccumilation.g = mix(currentDataAccumilation.g, finalDensityDistance,  (1.0 - accumdecay));
-			currentDataAccumilation.b = mix(currentDataAccumilation.b, initialdistanceSample,  (1.0 - accumdecay));
+			currentDataAccumilation.g = mix(currentDataAccumilation.g, traveledDistance,  (1.0 - accumdecay));
+			currentDataAccumilation.b = mix(currentDataAccumilation.b, finalDensityDistance,  (1.0 - accumdecay));
 		}
 
 		currentDataAccumilation.a = currentDepthBreak;
@@ -985,8 +985,20 @@ void main() {
 		imageStore(accum_1A_image, uv, currentColorAccumilation);
 		imageStore(accum_2A_image, uv, currentDataAccumilation);
 	}
+	if (linear_depth < maxTheoreticalStep){
+		float nearby_blend = smoothstep(maxstep, minstep, abs(currentDataAccumilation.b - linear_depth));
+		depthFade = 1.0 - clamp(linear_depth - maxstep - currentDataAccumilation.b, 0.0, minstep) / minstep;
+		
+		currentColorAccumilation.a = mix(currentColorAccumilation.a, 0.0, nearby_blend);
+		// currentDataAccumilation.g = mix(currentDataAccumilation.g, maxTheoreticalStep, clamp(finalDensityDistance - linear_depth, 0.0, 1.0) * depthFade * nearby_blend);
+		//currentColorAccumilation.rgb = mix(currentColorAccumilation.rgb, vec3(1.0, 0.0, 0.0), float(depthFade));
+	}
+	// currentDataAccumilation.g = mix(currentDataAccumilation.g, maxTheoreticalStep, clamp(finalDensityDistance - linear_depth, 0.0, 1.0) * depthFade);
+	
+	// if (depthBreak){
+	// 	currentColorAccumilation.rgb = vec3(1.0, 0.0, 0.0);
+	// }
 
-	currentDataAccumilation.a = abs(currentDataAccumilation.a);
 	imageStore(output_color_image, uv, currentColorAccumilation);
 	imageStore(output_data_image, uv, currentDataAccumilation);
 	//}
