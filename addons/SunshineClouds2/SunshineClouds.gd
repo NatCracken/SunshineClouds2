@@ -458,7 +458,7 @@ func _render_callback(effect_callback_type, render_data):
 			var new_size = size / resscale
 			var view_count = buffers.get_view_count()
 			var rendersceneData : RenderSceneData = render_data.get_render_scene_data();
-
+			
 			if size != last_size or uniform_sets == null or uniform_sets.size() != view_count * 4 or color_images.size() == 0 or color_images[0] != buffers.get_color_layer(0) or blit_screen_images.size() == 0 or msaa_mode != last_msaa_mode:
 				initialize_compute()
 				initialize_raster_pipelines(buffers.get_color_layer(0, is_msaa_on), buffers.get_depth_layer(0, is_msaa_on))

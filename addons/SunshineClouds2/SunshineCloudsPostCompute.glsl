@@ -1,5 +1,5 @@
 #[compute]
 #version 450
 
-#include "./CloudsInc.txt"
+#include "./CloudsInc.comp"
 #include "./SunshineCloudsPostCompute.comp"

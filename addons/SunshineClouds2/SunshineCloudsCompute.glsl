@@ -3,7 +3,7 @@
 #define PI 3.141592
 #define ABSORPTION_COEFFICIENT 0.9
 
-#include "./CloudsInc.txt"
+#include "./CloudsInc.comp"
 
 // Invocations in the (x, y, z) dimension
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
@@ -426,9 +426,9 @@ void main() {
 	view.xyz /= view.w;
 	float linear_depth = length(view); //used to calculate depth based on the view angle, idk just works.
 	//4.4 doesn't work with this
-	// if (linear_depth > scene_data_block.data.z_far){ 
-	// 	linear_depth *= 100.0;
-	// }
+	if (linear_depth >= scene_data_block.data.z_far){ 
+		linear_depth *= 100.0;
+	}
 	
 	// Convert screen coordinates to normalized device coordinates
 	vec2 clipUV = vec2(depthUV.x, depthUV.y);
@@ -869,7 +869,7 @@ void main() {
 	vec3 worldFinalPos = rayOrigin + raydirection * traveledDistance;
 	vec3 delta = rayOrigin - scene_data_block.prev_data.main_cam_inv_view_matrix[3].xyz;
 	worldFinalPos += delta;
-
+	
 	vec4 reprojectedScreenPos = vec4(0.0);
 
 	#if ((GODOT_VERSION_MAJOR == 4) && (GODOT_VERSION_MINOR == 4)) || ((GODOT_VERSION_MAJOR == 4) && (GODOT_VERSION_MINOR == 5))

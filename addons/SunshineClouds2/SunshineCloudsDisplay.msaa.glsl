@@ -3,7 +3,7 @@
 
 #define MSAA_ENABLED 1
 
-#include "./CloudsInc.txt"
+#include "./CloudsInc.comp"
 
 #define STAGE_VERTEX
 #include "./SunshineCloudsDisplay.rast"
@@ -14,5 +14,5 @@
 
 #define MSAA_ENABLED 1
 
-#include "./CloudsInc.txt"
+#include "./CloudsInc.comp"
 #include "./SunshineCloudsDisplay.rast"
