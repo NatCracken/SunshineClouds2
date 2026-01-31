@@ -280,9 +280,9 @@ void main() {
 	currentAccumilation = texture(input_color_image, accumUV);
 	currentColorData = texture(input_data_image, accumUV);
 
-	float sampledDepth = currentColorData.r;
+	float initialdistanceSample = currentColorData.r;
 	float traveledDistance = currentColorData.g;
-	float firstTraveledDistance = currentColorData.b;
+	float finalDensityDistance = currentColorData.b;
 
 	float minstep = genericData.data.min_step_distance;
 	float maxstep = genericData.data.max_step_distance;
@@ -328,12 +328,17 @@ void main() {
 		bool debugCollisions = false;
 
 		// work on near clouds partial obscuring artifacts here
-		if (linear_depth - firstTraveledDistance < maxstep){
-			float firsttravelblend = mix(1.0 - clamp((traveledDistance - firstTraveledDistance) / minstep, 0.0, 1.0), 1.0, clamp(firstTraveledDistance / maxstep, 0.0, 1.0));
-			lerp = (clamp((traveledDistance - linear_depth) / (traveledDistance - firstTraveledDistance), 0.0, 1.0)) * firsttravelblend;
+		// if (linear_depth < initialdistanceSample){
+		// 	float firsttravelblend = mix(1.0 - clamp((finalDensityDistance - initialdistanceSample) / minstep, 0.0, 1.0), 1.0, clamp(initialdistanceSample / maxstep, 0.0, 1.0));
+		// 	lerp = (clamp((finalDensityDistance - linear_depth) / (finalDensityDistance - initialdistanceSample), 0.0, 1.0)) * firsttravelblend;
+		// }
+
+		if (linear_depth - max(max(traveledDistance, initialdistanceSample), finalDensityDistance) < maxstep){
+			float firsttravelblend = mix(1.0 - clamp((traveledDistance - finalDensityDistance) / minstep, 0.0, 1.0), 1.0, clamp(finalDensityDistance / maxstep, 0.0, 1.0));
+			lerp = (clamp((traveledDistance - linear_depth) / (traveledDistance - finalDensityDistance), 0.0, 1.0)) * firsttravelblend;
 		}
 		density *= smoothstep(minstep, minstep * 2.0, linear_depth);
-		density = clamp(density - lerp, 0.0, 1.0);
+		density = mix(density, 0.0, lerp);
 		float groundLinearFade = mix(smoothstep(maxTheoreticalStep, maxTheoreticalStep, linear_depth), 1.0, genericData.data.fogEffectGround);
 
 		vec4 color = texelFetchMSAA(input_screen_image, uv, sampleIdx);

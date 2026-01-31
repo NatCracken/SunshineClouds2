@@ -935,17 +935,17 @@ void main() {
 		float if_break = max(float(override), abs(length(clampedUV - adjustedUV)));
 		// if_break = max(if_break, lightColor.a - 0.8 - currentColorAccumilation.a); //Lets super high accumilation still look passable, but at the cost of less soft edges.
 
-		if (if_break > 0.0 || (currentDepthBreak != currentDataAccumilation.a && abs(linear_depth - currentDataAccumilation.r) > travelspeed * 0.5)){
+		if (if_break > 0.0 || (currentDepthBreak != currentDataAccumilation.a && abs(initialdistanceSample - currentDataAccumilation.r) > travelspeed * 0.5)){
 			currentColorAccumilation = lightColor;
 			//debugCollisions = true;
-			currentDataAccumilation.r = linear_depth;
+			currentDataAccumilation.r = initialdistanceSample;
 			currentDataAccumilation.g = traveledDistance;
 			currentDataAccumilation.b = finalDensityDistance;
 		}
 		else{
 			currentColorAccumilation = (currentColorAccumilation * accumdecay) + lightColor * (1.0 - accumdecay);
 
-			currentDataAccumilation.r = mix(currentDataAccumilation.r, linear_depth,  (1.0 - accumdecay));
+			currentDataAccumilation.r = mix(currentDataAccumilation.r, initialdistanceSample,  (1.0 - accumdecay));
 			currentDataAccumilation.g = mix(currentDataAccumilation.g, traveledDistance,  (1.0 - accumdecay));
 			currentDataAccumilation.b = mix(currentDataAccumilation.b, finalDensityDistance,  (1.0 - accumdecay));
 		}
@@ -965,17 +965,17 @@ void main() {
 		float if_break = max(float(override), abs(length(clampedUV - adjustedUV)));
 		// if_break = max(if_break, lightColor.a - 0.8 - currentColorAccumilation.a); //Lets super high accumilation still look passable, but at the cost of less soft edges.
 
-		if (if_break > 0.0 || (currentDepthBreak != currentDataAccumilation.a && abs(linear_depth - currentDataAccumilation.r) > travelspeed * 0.5)){
+		if (if_break > 0.0 || (currentDepthBreak != currentDataAccumilation.a && abs(initialdistanceSample - currentDataAccumilation.r) > travelspeed * 0.5)){
 			currentColorAccumilation = lightColor;
 			//debugCollisions = true;
-			currentDataAccumilation.r = linear_depth;
+			currentDataAccumilation.r = initialdistanceSample;
 			currentDataAccumilation.g = traveledDistance;
 			currentDataAccumilation.b = finalDensityDistance;
 		}
 		else{
 			currentColorAccumilation = (currentColorAccumilation * accumdecay) + lightColor * (1.0 - accumdecay);
 
-			currentDataAccumilation.r = mix(currentDataAccumilation.r, linear_depth,  (1.0 - accumdecay));
+			currentDataAccumilation.r = mix(currentDataAccumilation.r, initialdistanceSample,  (1.0 - accumdecay));
 			currentDataAccumilation.g = mix(currentDataAccumilation.g, traveledDistance,  (1.0 - accumdecay));
 			currentDataAccumilation.b = mix(currentDataAccumilation.b, finalDensityDistance,  (1.0 - accumdecay));
 		}
@@ -985,20 +985,22 @@ void main() {
 		imageStore(accum_1A_image, uv, currentColorAccumilation);
 		imageStore(accum_2A_image, uv, currentDataAccumilation);
 	}
-	if (linear_depth < maxTheoreticalStep){
-		float nearby_blend = smoothstep(maxstep, minstep, abs(currentDataAccumilation.b - linear_depth));
-		depthFade = 1.0 - clamp(linear_depth - maxstep - currentDataAccumilation.b, 0.0, minstep) / minstep;
+	// if (linear_depth < maxTheoreticalStep){
+	// 	float nearby_blend = smoothstep(maxstep, minstep, abs(currentDataAccumilation.b - linear_depth));
+	// 	depthFade = 1.0 - clamp(linear_depth - maxstep - currentDataAccumilation.b, 0.0, minstep) / minstep;
 		
-		currentColorAccumilation.a = mix(currentColorAccumilation.a, 0.0, nearby_blend);
-		// currentDataAccumilation.g = mix(currentDataAccumilation.g, maxTheoreticalStep, clamp(finalDensityDistance - linear_depth, 0.0, 1.0) * depthFade * nearby_blend);
-		//currentColorAccumilation.rgb = mix(currentColorAccumilation.rgb, vec3(1.0, 0.0, 0.0), float(depthFade));
-	}
-	// currentDataAccumilation.g = mix(currentDataAccumilation.g, maxTheoreticalStep, clamp(finalDensityDistance - linear_depth, 0.0, 1.0) * depthFade);
+	// 	currentColorAccumilation.a = mix(currentColorAccumilation.a, 0.0, nearby_blend);
+	// 	// currentDataAccumilation.g = mix(currentDataAccumilation.g, maxTheoreticalStep, clamp(finalDensityDistance - linear_depth, 0.0, 1.0) * depthFade * nearby_blend);
+	// 	//currentColorAccumilation.rgb = mix(currentColorAccumilation.rgb, vec3(1.0, 0.0, 0.0), float(depthFade));
+	// }
+	// // currentDataAccumilation.g = mix(currentDataAccumilation.g, maxTheoreticalStep, clamp(finalDensityDistance - linear_depth, 0.0, 1.0) * depthFade);
 	
 	// if (depthBreak){
 	// 	currentColorAccumilation.rgb = vec3(1.0, 0.0, 0.0);
 	// }
 
+	currentDataAccumilation.r = min(currentDataAccumilation.r, initialdistanceSample);
+	
 	imageStore(output_color_image, uv, currentColorAccumilation);
 	imageStore(output_data_image, uv, currentDataAccumilation);
 	//}

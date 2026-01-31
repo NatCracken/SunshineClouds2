@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://g02m2ewpwusq" path="res://addons/SunshineClouds2/NoiseTextures/HeightGradient.tres" id="5_mrg3l"]
 [ext_resource type="NoiseTexture3D" uid="uid://6ed3lvlpbqmg" path="res://addons/SunshineClouds2/NoiseTextures/LargeScaleNoise.tres" id="6_iyxim"]
 [ext_resource type="NoiseTexture3D" uid="uid://dxyewgt7o40m0" path="res://addons/SunshineClouds2/NoiseTextures/MediumScaleNoise.tres" id="7_opodv"]
-[ext_resource type="RDShaderFile" uid="uid://cqhejbalsrvjp" path="res://addons/SunshineClouds2/SunshineCloudsPostCompute.glsl" id="8_lebqt"]
+[ext_resource type="RDShaderFile" uid="uid://cpef10h5lggny" path="res://addons/SunshineClouds2/SunshineCloudsPostCompute.msaa.glsl" id="8_lebqt"]
 [ext_resource type="RDShaderFile" uid="uid://crfpk8ta4qxsk" path="res://addons/SunshineClouds2/SunshineCloudsPreCompute.glsl" id="9_bt1pb"]
 [ext_resource type="Script" uid="uid://dnblgqynq1t7l" path="res://addons/SunshineClouds2/SunshineClouds.gd" id="10_jugbg"]
 [ext_resource type="NoiseTexture3D" uid="uid://bnck2kxeg5bkg" path="res://addons/SunshineClouds2/NoiseTextures/SmallScaleNoise.tres" id="11_jgply"]
@@ -25,7 +25,6 @@ script = ExtResource("10_jugbg")
 clouds_anisotropy = 0.16
 clouds_powder = 0.459
 ambient_occlusion_color = Color(1, 0, 0, 1)
-accumulation_decay = 0.883
 curl_noise_strength = 0.0
 max_lighting_steps = 32.0
 resolution_scale = 2
@@ -38,6 +37,7 @@ medium_scale_noise = ExtResource("7_opodv")
 small_scale_noise = ExtResource("11_jgply")
 curl_noise = ExtResource("2_2lmvw")
 dither_speed = 15.111
+blur_power = 2.0
 lighting_travel_distance = 10000.0
 extra_large_used_as_mask = true
 mask_width_km = 512.0
