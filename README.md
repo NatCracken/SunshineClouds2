@@ -9,6 +9,9 @@ Beginner tutorial: [https://www.youtube.com/watch?v=aEDDkGIfwDY](https://www.you
 
 ## Updates:
 
+2.2->2.7:
+Too many improvements to list, but a couple that I could remmember was MSAA support, Godot fog compatability slider, view distance discarding allowing far clipping on cameras to be shorter without impacting cloud rendering, lots of performance increases within the compute shader itself, minor overhaul of said compute shader. (MSAA support and the overhaul to support it was done by the community member Lanata, thank you so much for the work you did!)
+
 2.2: Lots of bug fixes, implemented more sampling functionality, as well as implementing support for Apple (Metal) and better AMD support, also improved performance and implemented automatic handling of version changes.
 
 2.1: Mostly bug fixes following asset release on the asset library
