@@ -1,7 +1,7 @@
 #[vertex]
 #version 450
 
-#include "./CloudsInc.txt"
+#include "./CloudsInc.comp"
 
 #define STAGE_VERTEX
 #include "./SunshineCloudsDisplay.rast"
@@ -10,5 +10,5 @@
 #[fragment]
 #version 450
 
-#include "./CloudsInc.txt"
+#include "./CloudsInc.comp"
 #include "./SunshineCloudsDisplay.rast"

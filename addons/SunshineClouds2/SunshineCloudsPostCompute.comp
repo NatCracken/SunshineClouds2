@@ -1,3 +1,4 @@
+
 #define PI 3.141592
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
@@ -267,7 +268,7 @@ void main() {
     ivec2 size = lowres_size * resolutionScale;
 
 
-	vec2 depthUV = (uv + 0.5) / vec2(size);
+	vec2 depthUV = (uv - 0.5) / vec2(size);
 	depthUV = clamp(depthUV, vec2(0.0), vec2(1.0));
 
 	vec2 accumUV = depthUV;
@@ -279,9 +280,9 @@ void main() {
 	currentAccumilation = texture(input_color_image, accumUV);
 	currentColorData = texture(input_data_image, accumUV);
 
-	float sampledDepth = currentColorData.r;
+	float initialdistanceSample = currentColorData.r;
 	float traveledDistance = currentColorData.g;
-	float firstTraveledDistance = currentColorData.b;
+	float finalDensityDistance = currentColorData.b;
 
 	float minstep = genericData.data.min_step_distance;
 	float maxstep = genericData.data.max_step_distance;
@@ -320,20 +321,30 @@ void main() {
 		vec4 view = scene_data_block.data.inv_projection_matrix * vec4(depthUV*2.0-1.0,depth,1.0);
 		view.xyz /= view.w;
 		float linear_depth = length(view); //used to calculate depth based on the view angle, idk just works.
-
+		if (linear_depth >= scene_data_block.data.z_far){ 
+			linear_depth *= 100.0;
+		}
 		float density = clamp(currentAccumilation.a, 0.0, 1.0);
 
 		float lerp = 0.0;
 		bool debugCollisions = false;
-		if (firstTraveledDistance > linear_depth){
+
+		// Results in no artifacts when clouds are behind objects, but greater artifacts when there are clouds between the player and the target object.
+		// if (linear_depth - max(max(traveledDistance, initialdistanceSample), finalDensityDistance) < maxstep){
+		// 	float firsttravelblend = mix(1.0 - clamp((traveledDistance - finalDensityDistance) / minstep, 0.0, 1.0), 1.0, clamp(finalDensityDistance / maxstep, 0.0, 1.0));
+		// 	lerp = (clamp((traveledDistance - linear_depth) / (traveledDistance - finalDensityDistance), 0.0, 1.0)) * firsttravelblend;
+		// }
+
+		// results in clouds in between the player and solid objects being softer, but has artifacts around objects with clouds behind them.
+		if (initialdistanceSample > linear_depth){
 			lerp = 1.0;
 		}
 		else if (traveledDistance > linear_depth){
-			float firsttravelblend = mix(1.0 - clamp((traveledDistance - firstTraveledDistance) / minstep, 0.0, 1.0), 1.0, clamp(firstTraveledDistance / maxstep, 0.0, 1.0));
-			lerp = (clamp((traveledDistance - linear_depth) / (traveledDistance - firstTraveledDistance), 0.0, 1.0)) * firsttravelblend;
+			float firsttravelblend = mix(1.0 - clamp((traveledDistance - initialdistanceSample) / minstep, 0.0, 1.0), 1.0, clamp(initialdistanceSample / maxstep, 0.0, 1.0));
+			lerp = (clamp((traveledDistance - linear_depth) / (traveledDistance - initialdistanceSample), 0.0, 1.0)) * firsttravelblend;
 		}
-		density *= smoothstep(0.0, minstep, linear_depth);
-		density = clamp(density - lerp, 0.0, 1.0);
+		density *= smoothstep(minstep, minstep * 2.0, linear_depth);
+		density = mix(density, 0.0, lerp);
 		float groundLinearFade = mix(smoothstep(maxTheoreticalStep, maxTheoreticalStep, linear_depth), 1.0, genericData.data.fogEffectGround);
 
 		vec4 color = texelFetchMSAA(input_screen_image, uv, sampleIdx);
@@ -341,6 +352,10 @@ void main() {
 		vec3 ambientfogdistancecolor = genericData.data.ambientfogdistancecolor.rgb * genericData.data.ambientfogdistancecolor.a;
 		float atmosphericDensity = genericData.data.atmospheric_density;
 		float directionalLightCount = genericData.data.directionalLightsCount;
+
+        vec3 physicalFogColor = color.rgb;
+        float fogweight = 0.0;
+
 		if (directionalLightCount > 0.0){
 			for (float i = 0.0; i < directionalLightCount; i++){
 				DirectionalLight light = directionalLights[int(i)];
@@ -351,10 +366,14 @@ void main() {
 				sundensityaffect = min(clamp(1.0 - (sundensityaffect * density), 0.0, 1.0), 1.0 - (sundensityaffect * clamp(maxTheoreticalStep - linear_depth, 0.0, 1.0)));
 				float lightPower = light.color.a * sunUpWeight * sundensityaffect;
 				vec4 atmosphericData = sampleAllAtmospherics(rayOrigin, raydirection, linear_depth, traveledDistance, 0.0,  min(linear_depth, maxTheoreticalStep)  / 10.0, 10.0, atmosphericDensity, sundir, light.color.rgb * lightPower, ambientfogdistancecolor);
-				color.rgb = mix(color.rgb, atmosphericData.rgb, clamp(atmosphericData.a * groundLinearFade, 0.0, 1.0)); //causes jitter in the sky
+				// color.rgb = mix(color.rgb, atmosphericData.rgb, clamp(atmosphericData.a * groundLinearFade, 0.0, 1.0)); //causes jitter in the sky
+
+                physicalFogColor = mix(physicalFogColor, atmosphericData.rgb, clamp(atmosphericData.a * groundLinearFade, 0.0, 1.0)); //causes jitter in the sky
+			    fogweight += clamp(atmosphericData.a * groundLinearFade, 0.0, 1.0);
 			}
 		}
 
+        color.rgb = mix(physicalFogColor, mix(color.rgb, ambientfogdistancecolor, clamp(fogweight, 0.0, 1.0)),  genericData.data.atmosphere_simple_blend);
 
 		color.rgb = mix(color.rgb, currentAccumilation.rgb, density);
 

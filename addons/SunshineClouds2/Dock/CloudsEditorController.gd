@@ -92,7 +92,7 @@ func InitialSceneLoad() -> void:
 	await get_tree().create_timer(0.5).timeout
 	var version_info = Engine.get_version_info()
 	
-	var file = FileAccess.open("res://addons/SunshineClouds2/CloudsInc.txt", FileAccess.READ_WRITE)
+	var file = FileAccess.open("res://addons/SunshineClouds2/CloudsInc.comp", FileAccess.READ_WRITE)
 	var content = file.get_as_text()
 	var major_index = content.find("GODOT_VERSION_MAJOR") + 20
 	var minor_index = content.find("GODOT_VERSION_MINOR") + 20

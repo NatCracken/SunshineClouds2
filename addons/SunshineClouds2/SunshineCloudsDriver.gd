@@ -18,7 +18,6 @@ class_name SunshineCloudsDriverGD
 @export var clouds_resource: SunshineCloudsGD
 @export_group("Optional World Environment")
 @export var ambience_sample_environment: Environment
-@export var use_enviornment_ambience_for_fog: bool = false
 @export_group("Light Controls")
 @export var tracked_directional_lights: Array[DirectionalLight3D] = []:
 	get:
@@ -103,9 +102,9 @@ func _process(delta : float):
 			
 			clouds_resource.wind_direction = wind_direction
 			
-			if use_enviornment_ambience_for_fog and ambience_sample_environment != null:
-				clouds_resource.atmosphere_color = ambience_sample_environment.fog_light_color
-				clouds_resource.cloud_ambient_color = ambience_sample_environment.fog_light_color
+			if clouds_resource.use_environment_fog > 0.0 and ambience_sample_environment != null:
+				clouds_resource.sampled_environment_fog_color = ambience_sample_environment.fog_light_color
+				#clouds_resource.cloud_ambient_color = ambience_sample_environment.fog_light_color
 			
 			if (tracked_directional_lights.size() * 2.0 != clouds_resource.directional_lights_data.size() \
 			or tracked_point_lights.size() * 2.0 != clouds_resource.point_lights_data.size()\

@@ -6,19 +6,22 @@ class_name SunshineCloudsGD
 
 
 @export_group("Basic Settings")
-@export_range(0, 1) var clouds_coverage : float = 0.7
+@export_range(0, 1) var clouds_coverage : float = 0.874
 @export_range(0, 20) var clouds_density : float = 1.0
-@export_range(0, 2) var atmospheric_density : float = 0.7
-@export_range(0, 10) var lighting_density : float = 0.25
+@export_range(0, 2) var atmospheric_density : float = 0.503
+@export_range(0, 10) var lighting_density : float = 0.171
 @export_range(0, 1) var fog_effect_ground : float = 1.0
+@export_range(0, 1) var use_environment_fog : float = 0.0
 
 @export_subgroup("Colors")
-@export_range(0, 1) var clouds_anisotropy : float = 0.18
+@export_range(0, 1) var clouds_anisotropy : float = 0.185
 @export_range(0, 1) var clouds_powder : float = 0.851
-@export var cloud_ambient_color : Color = Color(0.763, 0.786, 0.822)
-@export var cloud_ambient_tint : Color = Color(0.132, 0.202, 0.242)
-@export var atmosphere_color : Color = Color(0.696, 0.832, 0.989)
-@export var ambient_occlusion_color : Color = Color(0.54, 0.108, 0.0, 0.871)
+@export var cloud_ambient_color : Color = Color(0.761, 0.784, 0.824, 1.0)
+@export var cloud_ambient_tint : Color = Color(0.133, 0.2, 0.243, 1.0)
+
+@export var atmosphere_color : Color = Color(1.0, 1.0, 1.0, 1.0)
+@export var sampled_environment_fog_color : Color = Color(0.518, 0.553, 0.608, 1.0)
+@export var ambient_occlusion_color : Color = Color(0.0, 0.0, 0.0, 1.0)
 
 @export_subgroup("Structure")
 @export_range(0, 1) var accumulation_decay : float = 0.7
@@ -26,8 +29,8 @@ class_name SunshineCloudsGD
 @export_range(100, 500000) var large_noise_scale : float = 120000.0
 @export_range(100, 100000) var medium_noise_scale : float = 20000.0
 @export_range(100, 10000) var small_noise_scale : float = 8500
-@export_range(0, 2) var clouds_sharpness : float = 0.84
-@export_range(0, 3) var clouds_detail_power : float = 1.0
+@export_range(0, 2) var clouds_sharpness : float = 0.842
+@export_range(0, 3) var clouds_detail_power : float = 1.075
 @export_range(0, 50000) var curl_noise_strength : float = 4500.0
 @export_range(0, 2) var lighting_sharpness : float = 0.38
 @export_range(0, 1) var wind_swept_range : float = 0.54
@@ -37,16 +40,16 @@ class_name SunshineCloudsGD
 @export var cloud_ceiling : float = 25000.0
 
 @export_subgroup("Performance")
-@export var max_step_count : float = 100
-@export var max_lighting_steps : float = 32
-@export_enum("Native","Half","Quarter","Eighth") var resolution_scale = 0:
+@export var max_step_count : float = 300
+@export var max_lighting_steps : float = 16
+@export_enum("Native","Half","Quarter","Eighth") var resolution_scale = 1:
 	get:
 		return resolution_scale
 	set(value):
 		resolution_scale = value
 		last_size = Vector2i(0, 0)
 		lights_updated = true
-@export_range(0, 2) var lod_bias : float = 1.0
+@export_range(0, 2) var lod_bias : float = 2.0
 
 @export_subgroup("Noise Textures")
 @export var dither_noise : Texture3D
@@ -59,17 +62,17 @@ class_name SunshineCloudsGD
 
 @export_group("Advanced Settings")
 @export_subgroup("Visuals")
-@export_range(0, 1000) var dither_speed : float = 100.8254
-@export_range(0, 20) var blur_power : float = 2.0
-@export_range(0, 6) var blur_quality : float = 3.0
+@export_range(0, 1000) var dither_speed : float = 1000.0
+@export_range(0, 20) var blur_power : float = 3.0
+@export_range(0, 6) var blur_quality : float = 1.0
 
 @export_subgroup("Reflections")
 @export var reflections_globalshaderparam : String = ""
 
 @export_subgroup("Performance")
-@export var min_step_distance : float = 200.0
-@export var max_step_distance : float = 600.0
-@export var lighting_travel_distance : float = 7000.0
+@export var min_step_distance : float = 100.0
+@export var max_step_distance : float = 500.0
+@export var lighting_travel_distance : float = 5000.0
 
 @export_subgroup("Mask")
 @export var extra_large_used_as_mask : bool = false
@@ -455,7 +458,7 @@ func _render_callback(effect_callback_type, render_data):
 			var new_size = size / resscale
 			var view_count = buffers.get_view_count()
 			var rendersceneData : RenderSceneData = render_data.get_render_scene_data();
-
+			
 			if size != last_size or uniform_sets == null or uniform_sets.size() != view_count * 4 or color_images.size() == 0 or color_images[0] != buffers.get_color_layer(0) or blit_screen_images.size() == 0 or msaa_mode != last_msaa_mode:
 				initialize_compute()
 				initialize_raster_pipelines(buffers.get_color_layer(0, is_msaa_on), buffers.get_depth_layer(0, is_msaa_on))
@@ -978,10 +981,10 @@ func update_matrices(camera_tr, view_proj, new_size: Vector2i):
 	general_data.encode_float(idx, ambient_occlusion_color.b); idx += 4
 	general_data.encode_float(idx, ambient_occlusion_color.a); idx += 4
 
-	general_data.encode_float(idx, atmosphere_color.r); idx += 4
-	general_data.encode_float(idx, atmosphere_color.g); idx += 4
-	general_data.encode_float(idx, atmosphere_color.b); idx += 4
-	general_data.encode_float(idx, atmosphere_color.a); idx += 4
+	general_data.encode_float(idx, lerpf(atmosphere_color.r, sampled_environment_fog_color.r, use_environment_fog)); idx += 4
+	general_data.encode_float(idx, lerpf(atmosphere_color.r, sampled_environment_fog_color.g, use_environment_fog)); idx += 4
+	general_data.encode_float(idx, lerpf(atmosphere_color.r, sampled_environment_fog_color.b, use_environment_fog)); idx += 4
+	general_data.encode_float(idx, lerpf(atmosphere_color.r, sampled_environment_fog_color.a, use_environment_fog)); idx += 4
 
 	general_data.encode_float(idx, small_noise_scale); idx += 4
 	general_data.encode_float(idx, min_step_distance); idx += 4
@@ -998,7 +1001,7 @@ func update_matrices(camera_tr, view_proj, new_size: Vector2i):
 	general_data.encode_float(idx, float(max_step_count)); idx += 4
 	general_data.encode_float(idx, float(max_lighting_steps)); idx += 4
 
-	general_data.encode_float(idx, float(filter_index)); idx += 4
+	general_data.encode_float(idx, use_environment_fog); idx += 4
 	general_data.encode_float(idx, float(blur_power)); idx += 4
 	general_data.encode_float(idx, float(blur_quality)); idx += 4
 	general_data.encode_float(idx, float(curl_noise_strength)); idx += 4
@@ -1029,6 +1032,7 @@ func update_matrices(camera_tr, view_proj, new_size: Vector2i):
 		general_data.encode_float(idx, 1.0); idx += 4
 	else:
 		general_data.encode_float(idx, 0.0); idx += 4
+	
 	general_data.encode_float(idx, int(pow(2.0, float(resolution_scale)))); idx += 4
 	#
 	#general_data.encode_float(idx, last_size.x); idx += 4
